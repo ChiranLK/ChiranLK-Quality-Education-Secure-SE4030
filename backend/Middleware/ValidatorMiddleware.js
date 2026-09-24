@@ -1,0 +1,139 @@
+
+import User from "../models/UserModel.js";
+import Message from "../models/MessageModel.js";
+import { body, param, validationResult } from "express-validator";
+import { BadRequestError } from "../errors/customErrors.js";
+
+// Helper function to wrap validation chains with error handling
+const withValidationError = (validateValues) => {
+  return [
+    ...validateValues,
+    (req, res, next) => {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        const errorMessages = errors.array().map((error) => error.msg);
+        throw new BadRequestError(errorMessages.join(", "));
+      }
+      next();
+    },
+  ];
+};
+
+
+// Middleware to handle validation Register input
+export const validateRegisterInput = withValidationError([
+  body("fullName")
+    .notEmpty()
+    .withMessage("Full name is required")
+    .isLength({ min: 3, max: 50 })
+    .withMessage("Full name must be between 3 and 50 characters")
+    .trim(),
+  body("email")
+    .notEmpty()
+    .withMessage("Email is required")
+    .isEmail()
+    .withMessage("Invalid email format")
+    .custom(async (email) => {
+      const user = await User.findOne({ email });
+      if (user) {
+        throw new BadRequestError("Email already exists");
+      }
+    }),
+  body("password")
+    .notEmpty()
+    .withMessage("Password is required")
+    .isLength({ min: 6 })
+    .withMessage("Password must be at least 6 characters long"),
+  body("phoneNumber")
+    .notEmpty()
+    .withMessage("Phone number is required")
+    .matches(/^[0-9]{10}$/)
+    .withMessage("Please provide a valid 10-digit phone number"),
+  body("location").notEmpty().withMessage("Location is required").trim(),
+  body("role")
+    .optional()
+    .isIn(["user", "admin", "tutor"])
+    .withMessage("Invalid role"),
+  // Conditional validation for tutors - subjects are required
+  body("subjects")
+    .if(body("role").equals("tutor"))
+    .notEmpty()
+    .withMessage("Subjects are required for tutors")
+    .isArray({ min: 1 })
+    .withMessage("At least one subject is required for tutors"),
+  body("subjects.*")
+    .if(body("role").equals("tutor"))
+    .isString()
+    .withMessage("Each subject must be a string")
+    .isLength({ min: 2, max: 50 })
+    .withMessage("Each subject must be between 2 and 50 characters")
+    .trim(),
+]);
+
+// Middleware to handle validation Login input
+export const validateLoginInput = withValidationError([
+  body("email")
+    .notEmpty()
+    .withMessage("Email is required")
+    .isEmail()
+    .withMessage("Invalid email format"),
+  body("password").notEmpty().withMessage("Password is required"),
+]);
+
+// Middleware to handle Message validation
+export const validateMessageInput = withValidationError([
+  body("title")
+    .notEmpty()
+    .withMessage("Title is required")
+    .isLength({ min: 2, max: 50 })
+    .withMessage("Title must be between 2 and 50 characters")
+    .trim(),
+
+  body("message")
+    .notEmpty()
+    .withMessage("Message is required")
+    .isLength({ min: 10, max: 1000 })
+    .withMessage("Message must be between 10 and 1000 characters")
+    .trim(),
+  body("category")
+    .notEmpty()
+    .withMessage("Category is required")
+    .trim(),
+
+  body("language")
+    .notEmpty()
+    .withMessage("Language is required")
+    .trim(),
+  
+  body("image")
+    .optional()
+    .custom((value) => {
+      if (value && !/^(https?:\/\/.*|uploads\/.*\.(jpg|jpeg|png|gif|webp))$/i.test(value)) {
+        throw new Error("Please provide a valid image URL or path");
+      }
+      return true;
+    }),
+]);
+
+// Validation middleware for updating messages (all fields optional but validated if provided)
+export const validateMessageUpdate = withValidationError([
+  body("title")
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 50 })
+    .withMessage("Title must be between 2 and 50 characters"),
+
+  body("message")
+    .optional()
+    .trim()
+    .isLength({ min: 10, max: 1000 })
+    .withMessage("Message must be between 10 and 1000 characters"),
+    
+  body("category")
+    .optional()
+    .trim(),
+
+  body("language")
+    .optional()
+    .trim(),
+]);
