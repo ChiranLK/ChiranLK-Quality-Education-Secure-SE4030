@@ -8,12 +8,11 @@ jest.mock("../../models/MessageModel.js");
 jest.mock("../../services/messageService.js");
 
 import Message from "../../models/MessageModel.js";
-
 import {
   deleteMessage,
+  updateMessage,
 } from "../../Controllers/messageContoller.js";
-
-import { BadRequestError, NotFoundError } from "../../errors/customErrors.js";
+import { authenticateUser } from "../../Middleware/authMiddleware.js";
 
 // ─── Shared builders ─────────────────────────────────────────────────────────
 const buildMockRes = () => {
@@ -39,6 +38,133 @@ const buildMessage = (createdBy) => ({
   requiresTranslation: false,
   createdAt: new Date(),
   updatedAt: new Date(),
+});
+
+describe("message update field allowlist", () => {
+  const validId = new mongoose.Types.ObjectId().toString();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    Message.findById = jest.fn();
+    Message.findByIdAndUpdate = jest.fn();
+  });
+
+  test("excludes ownership and system-managed fields from the update", async () => {
+    const user = buildUser();
+    const existingMessage = buildMessage(user.userId);
+    const updatedMessage = { ...existingMessage, title: "Updated title" };
+    const populate = jest.fn().mockResolvedValue(updatedMessage);
+    Message.findById.mockResolvedValue(existingMessage);
+    Message.findByIdAndUpdate.mockReturnValue({ populate });
+    const req = {
+      user,
+      params: { id: validId },
+      body: {
+        title: "Updated title",
+        category: "Science",
+        language: "English",
+        owner: "forged-owner",
+        userId: "forged-user",
+        studentId: "forged-student",
+        tutorId: "forged-tutor",
+        createdBy: new mongoose.Types.ObjectId().toString(),
+        senderId: "forged-sender",
+        requiresTranslation: true,
+        createdAt: new Date(0),
+        unknownField: "not allowed",
+      },
+    };
+    const res = buildMockRes();
+
+    await updateMessage(req, res);
+
+    expect(Message.findByIdAndUpdate).toHaveBeenCalledWith(
+      validId,
+      {
+        title: "Updated title",
+        category: "Science",
+        language: "English",
+      },
+      { new: true, runValidators: true },
+    );
+    expect(populate).toHaveBeenCalledWith("createdBy", "fullName email role");
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.OK);
+  });
+
+  test("returns 403 when another student attempts to update the request", async () => {
+    const ownerId = new mongoose.Types.ObjectId().toString();
+    const user = buildUser();
+    Message.findById.mockResolvedValue(buildMessage(ownerId));
+    const req = {
+      user,
+      params: { id: validId },
+      body: { title: "Hijacked request", createdBy: user.userId },
+    };
+    const res = buildMockRes();
+
+    await updateMessage(req, res);
+
+    expect(Message.findByIdAndUpdate).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.FORBIDDEN);
+    expect(res.json).toHaveBeenCalledWith({
+      success: false,
+      msg: "You are not authorized to update this message",
+    });
+  });
+
+  test("returns 404 when the help request does not exist", async () => {
+    Message.findById.mockResolvedValue(null);
+    const req = {
+      user: buildUser(),
+      params: { id: validId },
+      body: { title: "Updated title" },
+    };
+    const res = buildMockRes();
+
+    await updateMessage(req, res);
+
+    expect(Message.findByIdAndUpdate).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.NOT_FOUND);
+    expect(res.json).toHaveBeenCalledWith({
+      success: false,
+      msg: "Message not found",
+    });
+  });
+
+  test("returns 400 when only protected ownership fields are supplied", async () => {
+    const user = buildUser();
+    Message.findById.mockResolvedValue(buildMessage(user.userId));
+    const req = {
+      user,
+      params: { id: validId },
+      body: {
+        createdBy: new mongoose.Types.ObjectId().toString(),
+        userId: "forged-user",
+        studentId: "forged-student",
+        tutorId: "forged-tutor",
+      },
+    };
+    const res = buildMockRes();
+
+    await updateMessage(req, res);
+
+    expect(Message.findByIdAndUpdate).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.BAD_REQUEST);
+  });
+
+  test("rejects a request without authentication before controller access", () => {
+    const req = { cookies: {}, headers: {} };
+    const next = jest.fn();
+
+    try {
+      authenticateUser(req, {}, next);
+      throw new Error("Expected authenticateUser to reject the request");
+    } catch (error) {
+      expect(error.statusCode).toBe(StatusCodes.UNAUTHORIZED);
+      expect(error.message).toBe("Authentication invalid");
+    }
+    expect(next).not.toHaveBeenCalled();
+  });
 });
 
 // ════════════════════════════════════════════════════════════════════════════

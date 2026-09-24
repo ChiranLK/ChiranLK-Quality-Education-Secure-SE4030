@@ -1,6 +1,10 @@
 import Message from "../models/MessageModel.js";
 import { StatusCodes } from "http-status-codes";
-import { BadRequestError, NotFoundError } from "../errors/customErrors.js";
+import {
+  BadRequestError,
+  NotFoundError,
+  UnauthorizedError,
+} from "../errors/customErrors.js";
 import path from "path";
 import fs from "fs";
 import { createMessageWithTranslation, processMessageContent } from "../services/messageService.js";
@@ -108,18 +112,29 @@ export const updateMessage = async (req, res) => {
     }
 
     // Check if the logged-in user is the creator of the message
-    if (message.createdBy.toString() !== req.user.userId) {
-      throw new BadRequestError("You are not authorized to update this message");
+    if (message.createdBy.toString() !== String(req.user.userId)) {
+      throw new UnauthorizedError("You are not authorized to update this message");
     }
 
-    // Prepare update data
-    let updateData = { ...req.body };
+    // Only user-editable fields may reach the database update. Ownership,
+    // translation metadata, sender identifiers and timestamps are protected.
+    const updateData = {};
+    const requestBody = req.body || {};
+    for (const field of ["title", "message", "category", "language"]) {
+      if (requestBody[field] !== undefined) {
+        updateData[field] = requestBody[field];
+      }
+    }
 
     // If message content is being updated, process it for translation
-    if (req.body.message) {
-      const { message: processedMessage, requiresTranslation } = await processMessageContent(req.body.message);
+    if (requestBody.message) {
+      const { message: processedMessage, requiresTranslation } = await processMessageContent(requestBody.message);
       updateData.message = processedMessage;
       updateData.requiresTranslation = requiresTranslation;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      throw new BadRequestError("At least one editable field must be provided to update");
     }
 
     const updatedMessage = await Message.findByIdAndUpdate(id, updateData, {
@@ -135,8 +150,12 @@ export const updateMessage = async (req, res) => {
     });
   } catch (error) {
     // Handle specific error types
-    if (error instanceof BadRequestError || error instanceof NotFoundError) {
-      return res.status(StatusCodes.BAD_REQUEST).json({
+    if (
+      error instanceof BadRequestError ||
+      error instanceof NotFoundError ||
+      error instanceof UnauthorizedError
+    ) {
+      return res.status(error.statusCode).json({
         success: false,
         msg: error.message
       });
@@ -192,7 +211,5 @@ export const deleteMessage = async (req, res) => {
     });
   }
 };
-
-
 
 
