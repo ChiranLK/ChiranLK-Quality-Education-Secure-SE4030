@@ -17,7 +17,7 @@ import {
   resetPassword,
 } from "../Controllers/authController.js";
 import { asyncHandler } from "../Middleware/asyncHandler.js";
-import { protect } from "../Middleware/authMiddleware.js";
+import { protect, authorizePermissions } from "../Middleware/authMiddleware.js";
 import { uploadAvatarImage } from "../Middleware/uploadMiddleware.js";
 import {
   validateRegisterInput,
@@ -33,7 +33,7 @@ router.post("/check-email", asyncHandler(checkEmail));
 router.post("/forgot-password", asyncHandler(forgotPassword));
 router.post("/reset-password/:token", asyncHandler(resetPassword));
 router.get("/me", protect, asyncHandler(getMe));
-router.get("/all-users", protect, asyncHandler(getAllUsers));
+router.get("/all-users", protect, authorizePermissions("admin"), asyncHandler(getAllUsers));
 
 // Profile management
 router.put("/profile", protect, asyncHandler(updateProfile));
@@ -42,8 +42,8 @@ router.delete("/profile/avatar", protect, asyncHandler(removeAvatar));
 router.delete("/profile", protect, asyncHandler(deleteMyProfile));
 
 // Admin routes
-router.delete("/users/:userId", protect, asyncHandler(deleteUser));
-router.post("/setup-admin", protect, asyncHandler(setupInitialAdmin));
-router.post("/create-admin", protect, asyncHandler(createAdmin));
+router.delete("/users/:userId", protect, authorizePermissions("admin"), asyncHandler(deleteUser));
+router.post("/setup-admin", protect, authorizePermissions("admin"), asyncHandler(setupInitialAdmin));
+router.post("/create-admin", protect, authorizePermissions("admin"), asyncHandler(createAdmin));
 
 export default router;
