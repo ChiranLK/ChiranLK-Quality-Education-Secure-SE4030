@@ -16,6 +16,8 @@ import {
   sendPasswordChangedEmail,
 } from "../services/feedbackMailService.js";
 
+const PUBLIC_SELF_REGISTRATION_ROLES = Object.freeze(["user", "tutor"]);
+
 // Register a new user or tutor
 export const register = async (req, res) => {
   const { email, password, role, subjects, grade } = req.body || {};
@@ -23,19 +25,29 @@ export const register = async (req, res) => {
     throw new BadRequestError("Email and password are required");
   }
 
-  const isFirstAccount = (await User.countDocuments()) === 0;
+  const selfRegistrationRole = role || "user";
+  if (!PUBLIC_SELF_REGISTRATION_ROLES.includes(selfRegistrationRole)) {
+    throw new BadRequestError("Invalid role for self-registration");
+  }
 
-  // Validate and set role appropriately
-  if (role === "tutor") {
-    req.body.role = "tutor";
-    
+  const userData = {
+    fullName: req.body.fullName,
+    email,
+    password: await hashPassword(password),
+    phoneNumber: req.body.phoneNumber,
+    location: req.body.location,
+    role: selfRegistrationRole,
+  };
+
+  if (selfRegistrationRole === "tutor") {
+
     // Validate subjects for tutors
     if (!subjects || !Array.isArray(subjects) || subjects.length === 0) {
       throw new BadRequestError("Subjects are required for tutor registration");
     }
-    
+
     // Initialize tutorProfile with subjects
-    req.body.tutorProfile = {
+    userData.tutorProfile = {
       subjects: subjects.map(s => s.toLowerCase()),
       availability: "available",
       sessionCount: 0,
@@ -45,20 +57,12 @@ export const register = async (req, res) => {
       },
       isVerified: false,
     };
-  } else if (role === "admin") {
-    // Allow admin registration for first account or if explicitly requested
-    req.body.role = "admin";
   } else {
-    // Default: first account becomes admin, others become user
-    req.body.role = isFirstAccount ? "admin" : "user";
     // Save grade for students
-    if (grade) req.body.grade = grade;
+    if (grade) userData.grade = grade;
   }
 
-  const hashedPassword = await hashPassword(password);
-  req.body.password = hashedPassword;
-
-  const user = await User.create(req.body);
+  const user = await User.create(userData);
 
   const message =
     user.role === "tutor"
