@@ -1,17 +1,36 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { CheckCircle, Loader } from "lucide-react";
+import customFetch from "../utils/customfetch";
 
 export default function AuthSuccessPage() {
-  useEffect(() => {
-    const handleAuthSuccess = async () => {
-      // Just show the success message for a moment, then redirect to home
-      // App.jsx will detect the logged-in user and show the dashboard
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 1500);
-    };
+  const started = useRef(false);
 
-    handleAuthSuccess();
+  useEffect(() => {
+    // React StrictMode runs effects twice in development.
+    // The code only works once, so only send it once.
+    if (started.current) return;
+    started.current = true;
+
+    const code = new URLSearchParams(window.location.search).get("code");
+
+    // Remove the code from the address bar and browser history straight away
+    window.history.replaceState({}, document.title, "/auth-success");
+
+    if (!code) {
+      window.location.replace("/auth-error?error=invalid_request");
+      return;
+    }
+
+    customFetch
+      .post("/google-oauth/exchange", { code })
+      .then(({ data }) => {
+        sessionStorage.setItem("token", data.token);
+        sessionStorage.setItem("user", JSON.stringify(data.user));
+        window.location.replace("/");
+      })
+      .catch(() => {
+        window.location.replace("/auth-error?error=session_expired");
+      });
   }, []);
 
   return (

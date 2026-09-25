@@ -6,6 +6,8 @@ import {
   UnauthenticatedError,
   BadRequestError,
 } from "../errors/customErrors.js";
+import { sanitizeSignupRole, randomToken, hashToken } from "../utils/oauthSecurity.js";
+import LoginTicket from "../models/LoginTicketModel.js";
 
 const getOAuth2Client = () => {
   return new google.auth.OAuth2(
@@ -17,7 +19,7 @@ const getOAuth2Client = () => {
 
 // Get Google OAuth URL
 export const getGoogleAuthUrl = (req, res) => {
-  const { role = "user" } = req.query;
+  const role = sanitizeSignupRole(req.query.role);
   const oauth2Client = getOAuth2Client();
   
   const url = oauth2Client.generateAuthUrl({
@@ -89,42 +91,73 @@ export const handleGoogleCallback = async (req, res) => {
         googleId,
         authProvider: "google",
         avatar: picture,
-        role: state_data.role || "user",
+        role: sanitizeSignupRole(state_data.role),
         // Set placeholder values for required fields (user can update later)
         phoneNumber: "0000000000",
         location: "Not specified",
       });
     }
 
-    // Create JWT token
-    const oneday = 24 * 60 * 60 * 1000;
-    const token = createJWT({ userId: user._id, id: user._id, role: user.role });
-
-    // Set cookie
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Lax",
-      maxAge: oneday,
+    // SECURITY: never put the JWT or user data in the URL.
+    // Send a random one-time code instead. The frontend swaps it for the
+    // token with a POST request (see exchangeLoginCode below).
+    const loginCode = randomToken();
+    await LoginTicket.create({
+      ticketHash: hashToken(loginCode),
+      user: user._id,
+      expiresAt: new Date(Date.now() + 60 * 1000), // valid for 60 seconds
     });
 
-    // Redirect to frontend with auth success
-    // Frontend will check for token in cookie and localStorage will be set via a redirect page
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
     const successUrl = new URL(`${frontendUrl}/auth-success`);
-    successUrl.searchParams.append('token', token);
-    successUrl.searchParams.append('user', JSON.stringify(user.toJSON()));
+    successUrl.searchParams.set("code", loginCode);
 
+    res.setHeader("Referrer-Policy", "no-referrer");
     res.redirect(successUrl.toString());
   } catch (error) {
-    console.error("Google OAuth error:", error);
-    
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    // Keep error details in the server log only, never in the URL
+    console.error("Google OAuth error:", error.message);
+
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
     const errorUrl = new URL(`${frontendUrl}/auth-error`);
-    errorUrl.searchParams.append('message', error.message || 'Authentication failed');
-    
+    errorUrl.searchParams.set("error", "server_error");
     res.redirect(errorUrl.toString());
   }
+
+};
+
+// POST /api/google-oauth/exchange  { code }
+// Swaps the one-time login code for the JWT.
+export const exchangeLoginCode = async (req, res) => {
+  const { code } = req.body || {};
+  if (typeof code !== "string" || code.length < 20 || code.length > 200) {
+    throw new BadRequestError("Invalid login code");
+  }
+
+  // Find and delete in one step, so each code works only once
+  const ticket = await LoginTicket.findOneAndDelete({
+    ticketHash: hashToken(code),
+    expiresAt: { $gt: new Date() },
+  });
+  if (!ticket) {
+    throw new BadRequestError("Login code is invalid or has expired");
+  }
+
+  const user = await User.findById(ticket.user);
+  if (!user) {
+    throw new BadRequestError("Login code is invalid or has expired");
+  }
+
+  const token = createJWT({ userId: user._id, id: user._id, role: user.role });
+
+  res.cookie("token", token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "Lax",
+    maxAge: 24 * 60 * 60 * 1000,
+  });
+
+  res.status(StatusCodes.OK).json({ token, user: user.toJSON() });
 };
 
 // Get Google Auth URL for Calendar (separate from sign-in)
