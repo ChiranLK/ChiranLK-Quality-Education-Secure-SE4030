@@ -6,6 +6,7 @@ import {
   UnauthenticatedError,
   BadRequestError,
 } from "../errors/customErrors.js";
+import { sanitizeSignupRole } from "../utils/oauthSecurity.js";
 
 const getOAuth2Client = () => {
   return new google.auth.OAuth2(
@@ -17,7 +18,7 @@ const getOAuth2Client = () => {
 
 // Get Google OAuth URL
 export const getGoogleAuthUrl = (req, res) => {
-  const { role = "user" } = req.query;
+  const role = sanitizeSignupRole(req.query.role);
   const oauth2Client = getOAuth2Client();
   
   const url = oauth2Client.generateAuthUrl({
@@ -89,7 +90,7 @@ export const handleGoogleCallback = async (req, res) => {
         googleId,
         authProvider: "google",
         avatar: picture,
-        role: state_data.role || "user",
+        role: sanitizeSignupRole(state_data.role),
         // Set placeholder values for required fields (user can update later)
         phoneNumber: "0000000000",
         location: "Not specified",
