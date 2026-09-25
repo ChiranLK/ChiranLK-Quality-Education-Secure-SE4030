@@ -1,20 +1,19 @@
-import { useEffect } from "react";
 import { AlertCircle, Home, ArrowLeft } from "lucide-react";
 
+// Only show messages from this fixed list, never text taken from the URL
+const ERROR_MESSAGES = {
+  access_denied: "Google sign-in was cancelled.",
+  invalid_request: "The sign-in request was invalid. Please try again.",
+  session_expired: "Your sign-in session expired. Please try again.",
+  server_error: "Authentication failed. Please try again.",
+};
+
 export default function AuthErrorPage() {
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const message = params.get("message");
-    
-    if (!message) {
-      console.log("Auth error occurred");
-    }
-  }, []);
-
   const params = new URLSearchParams(window.location.search);
-  const errorMessage = params.get("message") || "Authentication failed. Please try again.";
+  const errorMessage =
+    ERROR_MESSAGES[params.get("error")] || ERROR_MESSAGES.server_error;
 
-  return (
+    return (
     <div className="auth-bg min-h-screen flex items-center justify-center relative transition-colors duration-500">
       <div className="glass-card w-full max-w-md px-8 py-12 dark:ring-2 dark:ring-red-600/50 animate-in fade-in zoom-in duration-600">
         <div className="flex justify-center mb-6 animate-in zoom-in duration-500 delay-300">

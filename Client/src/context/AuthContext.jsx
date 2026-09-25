@@ -16,22 +16,8 @@ const AuthContext = createContext(null);
 /** Read the stored user object from sessionStorage or localStorage */
 function readStoredUser() {
   // Check URL params first (Google OAuth callback)
-  const params = new URLSearchParams(window.location.search);
-  const urlToken = params.get('token');
-  const urlUser  = params.get('user');
-
-  if (urlToken && urlUser) {
-    try {
-      const user = JSON.parse(urlUser);
-      sessionStorage.setItem('token', urlToken);
-      sessionStorage.setItem('user', JSON.stringify(user));
-      localStorage.setItem('token', urlToken);
-      localStorage.setItem('user', JSON.stringify(user));
-      return user;
-    } catch {
-      // ignore parse errors
-    }
-  }
+  // SECURITY: the token is no longer read from the URL.
+  // auth-success.jsx exchanges a one-time code for it instead.
 
   // sessionStorage first (tab-specific)
   const sessionUser = sessionStorage.getItem('user');
