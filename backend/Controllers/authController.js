@@ -48,8 +48,11 @@ export const register = async (req, res) => {
   } else if (role === "admin") {
     // Allow admin registration for first account or if explicitly requested
     req.body.role = "admin";
+  } else if (role === "user") {
+    req.body.role = "user";
+    if (grade) req.body.grade = grade;
   } else {
-    // Default: first account becomes admin, others become user
+    // Default fallback if role is not specified: first account becomes admin, others become user
     req.body.role = isFirstAccount ? "admin" : "user";
     // Save grade for students
     if (grade) req.body.grade = grade;
