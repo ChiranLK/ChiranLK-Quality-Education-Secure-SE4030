@@ -34,6 +34,6 @@ git ls-files backend/.env` | Actual Git output, Files untracked successfully |
 - V14 baseline runtime evidence: Unavailable
 - V8 tracked-file baseline evidence: Captured
 - V8 scanner evidence: Unavailable
-- V8 status: CURRENT-TREE REMEDIATED / OWNER REVOCATION UNVERIFIED
+- V8 status: Additional Security Hardening - Current-tree remediated; owner revocation unverified.
 
 The historically committed backend/google-tokens.json file was removed from the current repository and blocked using .gitignore. A safe .env.example containing placeholders only is provided. The OAuth application name, Client ID, Google Cloud project, and authorizing Google account could not be determined from repository evidence. Token revocation could not be independently verified because the credential originated from the historical third-party baseline and the team does not control the original Google account. The historical baseline remains available only as required assignment evidence. V8 is documented as additional security hardening and is not counted among the team's required seven vulnerabilities.
