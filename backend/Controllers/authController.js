@@ -18,6 +18,7 @@ import {
 import { logSafeError, logSafeEvent } from "../utils/safeLogger.js";
 
 const PUBLIC_SELF_REGISTRATION_ROLES = Object.freeze(["user", "tutor"]);
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const publicErrorMessage = (error, fallback) =>
   error?.statusCode && error.statusCode < 500 ? error.message : fallback;
 
@@ -137,38 +138,24 @@ export const logout = (req, res) => {
   res.status(StatusCodes.OK).json({ msg: "User logged out" });
 };
 
-// Check if email exists and return its role
+// Retained for API compatibility. Never disclose account existence or role.
 export const checkEmail = async (req, res) => {
-  try {
-    const { email } = req.body;
+  const email =
+    typeof req.body?.email === "string"
+      ? req.body.email.trim().toLowerCase()
+      : "";
 
-    if (!email) {
-      return res.status(StatusCodes.BAD_REQUEST).json({
-        success: false,
-        msg: "Email is required",
-      });
-    }
-
-    const user = await User.findOne({ email }).select("role");
-
-    if (!user) {
-      return res.status(StatusCodes.NOT_FOUND).json({
-        success: false,
-        msg: "Email not found",
-      });
-    }
-
-    res.status(StatusCodes.OK).json({
-      success: true,
-      role: user.role,
-      email: email,
-    });
-  } catch (error) {
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+  if (!email || email.length > 254 || !EMAIL_PATTERN.test(email)) {
+    return res.status(StatusCodes.BAD_REQUEST).json({
       success: false,
-      msg: "Failed to check email",
+      msg: "A valid email address is required",
     });
   }
+
+  return res.status(StatusCodes.OK).json({
+    success: true,
+    msg: "If the email is registered, continue with the standard sign-in or recovery flow.",
+  });
 };
 
 // Update user profile
