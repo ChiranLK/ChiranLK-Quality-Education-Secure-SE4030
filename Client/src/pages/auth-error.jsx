@@ -6,6 +6,8 @@ const ERROR_MESSAGES = {
   invalid_request: "The sign-in request was invalid. Please try again.",
   session_expired: "Your sign-in session expired. Please try again.",
   server_error: "Authentication failed. Please try again.",
+  account_conflict: "This email is already linked to a different Google account.",
+  email_not_verified: "Your Google email address is not verified.",
 };
 
 export default function AuthErrorPage() {
