@@ -223,8 +223,16 @@ describe("V7 - Secure email and calendar endpoints", () => {
 
 describe("V14 - Prevent unsafe user-controlled regex queries", () => {
   beforeEach(async () => {
+    // Create base synthetic sessions
     await request(testApp).post("/api/tutoring-sessions").set("Authorization", `Bearer ${tutorToken}`).send({ ...validSessionBody(), subject: "mathematics", title: "Math" });
     await request(testApp).post("/api/tutoring-sessions").set("Authorization", `Bearer ${tutorToken}`).send({ ...validSessionBody(), subject: "science", title: "Science" });
+    
+    // Create specific literal sessions
+    await request(testApp).post("/api/tutoring-sessions").set("Authorization", `Bearer ${tutorToken}`).send({ ...validSessionBody(), subject: "C++", title: "Literal C++" });
+    await request(testApp).post("/api/tutoring-sessions").set("Authorization", `Bearer ${tutorToken}`).send({ ...validSessionBody(), subject: "^^^", title: "Literal Caret" });
+    await request(testApp).post("/api/tutoring-sessions").set("Authorization", `Bearer ${tutorToken}`).send({ ...validSessionBody(), subject: "math.ematics", title: "Literal Dot" });
+    await request(testApp).post("/api/tutoring-sessions").set("Authorization", `Bearer ${tutorToken}`).send({ ...validSessionBody(), subject: "a*b", title: "Literal Asterisk" });
+    await request(testApp).post("/api/tutoring-sessions").set("Authorization", `Bearer ${tutorToken}`).send({ ...validSessionBody(), subject: "(advanced)", title: "Literal Parentheses" });
   });
 
   it("V14-T01: Normal text search -> 200 with matching results", async () => {
@@ -240,11 +248,15 @@ describe("V14 - Prevent unsafe user-controlled regex queries", () => {
   });
   it("V14-T03: C++ treated as literals -> 200", async () => {
     const res = await request(testApp).get("/api/tutoring-sessions?subject=C%2B%2B").set("Authorization", `Bearer ${studentToken}`).expect(200);
-    expect(res.body).toBeDefined();
+    const sessions = res.body.sessions ?? res.body;
+    expect(sessions.length).toBe(1);
+    expect(sessions[0].subject).toBe("c++");
   });
   it("V14-T04: Caret ^ treated as literal -> 200", async () => {
-    const res = await request(testApp).get("/api/tutoring-sessions?subject=%5E").set("Authorization", `Bearer ${studentToken}`).expect(200);
-    expect((res.body.sessions ?? res.body).length).toBe(0);
+    const res = await request(testApp).get("/api/tutoring-sessions?subject=%5E%5E%5E").set("Authorization", `Bearer ${studentToken}`).expect(200);
+    const sessions = res.body.sessions ?? res.body;
+    expect(sessions.length).toBe(1);
+    expect(sessions[0].subject).toBe("^^^");
   });
   it("V14-T05: Subject longer than 100 chars -> 400 Bad Request", async () => {
     const res = await request(testApp).get(`/api/tutoring-sessions?subject=${"a".repeat(101)}`).set("Authorization", `Bearer ${studentToken}`).expect(400);
@@ -262,12 +274,24 @@ describe("V14 - Prevent unsafe user-controlled regex queries", () => {
     expect(Array.isArray(res.body.sessions ?? res.body)).toBe(true);
   });
   it("V14-T09: Dot metacharacter . treated literally -> 200", async () => {
-    await request(testApp).get("/api/tutoring-sessions?subject=math.ematics").set("Authorization", `Bearer ${studentToken}`).expect(200);
+    const res = await request(testApp).get("/api/tutoring-sessions?subject=math.ematics").set("Authorization", `Bearer ${studentToken}`).expect(200);
+    const sessions = res.body.sessions ?? res.body;
+    expect(sessions.length).toBe(1);
+    expect(sessions[0].subject).toBe("math.ematics");
   });
-  it("V14-T10: Parentheses treated literally -> 200", async () => {
-    await request(testApp).get("/api/tutoring-sessions?subject=a*b").set("Authorization", `Bearer ${studentToken}`).expect(200);
+  it("V14-T10: Asterisk treated literally -> 200", async () => {
+    const res = await request(testApp).get("/api/tutoring-sessions?subject=a*b").set("Authorization", `Bearer ${studentToken}`).expect(200);
+    const sessions = res.body.sessions ?? res.body;
+    expect(sessions.length).toBe(1);
+    expect(sessions[0].subject).toBe("a*b");
   });
-  it("V14-T11: Grade filter still works", async () => {
+  it("V14-T11: Parentheses treated literally -> 200", async () => {
+    const res = await request(testApp).get("/api/tutoring-sessions?subject=(advanced)").set("Authorization", `Bearer ${studentToken}`).expect(200);
+    const sessions = res.body.sessions ?? res.body;
+    expect(sessions.length).toBe(1);
+    expect(sessions[0].subject).toBe("(advanced)");
+  });
+  it("V14-T12: Grade filter still works", async () => {
     await request(testApp).get("/api/tutoring-sessions?grade=intermediate").set("Authorization", `Bearer ${studentToken}`).expect(200);
   });
 });
