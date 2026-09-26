@@ -4,6 +4,10 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { createJWT } from "../utils/generateToken.js";
 import { hashPassword } from "../utils/passwordUtils.js";
+import {
+  meetsPasswordPolicy,
+  PASSWORD_POLICY_MESSAGE,
+} from "../utils/passwordPolicy.js";
 import { StatusCodes } from "http-status-codes";
 import {
   UnauthenticatedError,
@@ -27,6 +31,9 @@ export const register = async (req, res) => {
   const { email, password, role, subjects, grade } = req.body || {};
   if (!email || !password) {
     throw new BadRequestError("Email and password are required");
+  }
+  if (!meetsPasswordPolicy(password)) {
+    throw new BadRequestError(PASSWORD_POLICY_MESSAGE);
   }
 
   const selfRegistrationRole = role || "user";
@@ -237,6 +244,9 @@ export const createAdmin = async (req, res) => {
         "Email, password, full name, phone number, and location are all required"
       );
     }
+    if (!meetsPasswordPolicy(password)) {
+      throw new BadRequestError(PASSWORD_POLICY_MESSAGE);
+    }
 
     // Check if email already exists
     const existingUser = await User.findOne({ email });
@@ -302,6 +312,9 @@ export const setupInitialAdmin = async (req, res) => {
       throw new BadRequestError(
         "Email, password, full name, phone number, and location are all required"
       );
+    }
+    if (!meetsPasswordPolicy(password)) {
+      throw new BadRequestError(PASSWORD_POLICY_MESSAGE);
     }
 
     // Check if email already exists
@@ -674,8 +687,9 @@ export const resetPassword = async (req, res) => {
   const { password } = req.body;
 
   if (!token) throw new BadRequestError("Reset token is required");
-  if (!password || password.length < 6)
-    throw new BadRequestError("Password must be at least 6 characters");
+  if (!meetsPasswordPolicy(password)) {
+    throw new BadRequestError(PASSWORD_POLICY_MESSAGE);
+  }
 
   // Hash the raw token from the URL to compare with DB
   const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
