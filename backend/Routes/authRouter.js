@@ -24,14 +24,20 @@ import {
   validateLoginInput,
 } from "../Middleware/ValidatorMiddleware.js";
 
+import {
+  loginLimiter,
+  passwordResetLimiter,
+  authLimiter,
+} from "../Middleware/rateLimiter.js";
+
 const router = Router();
 
 router.post("/register", validateRegisterInput, asyncHandler(register));
-router.post("/login", validateLoginInput, asyncHandler(login));
+router.post("/login", loginLimiter, validateLoginInput, asyncHandler(login));
 router.post("/logout", asyncHandler(logout));
-router.post("/check-email", asyncHandler(checkEmail));
-router.post("/forgot-password", asyncHandler(forgotPassword));
-router.post("/reset-password/:token", asyncHandler(resetPassword));
+router.post("/check-email", authLimiter, asyncHandler(checkEmail));
+router.post("/forgot-password", passwordResetLimiter, asyncHandler(forgotPassword));
+router.post("/reset-password/:token", passwordResetLimiter, asyncHandler(resetPassword));
 router.get("/me", protect, asyncHandler(getMe));
 router.get("/all-users", protect, authorizePermissions("admin"), asyncHandler(getAllUsers));
 
