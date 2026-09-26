@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+google-tokens.json
+
+# Runtime and generated files
+uploads/
+coverage/
+tests/coverage/
+*.log
+*.jtl
+*-output.txt
+output.txt
+test-output.txt
+
+# Performance test reports
+tests/performance/*.json
+tests/performance/*.html
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
