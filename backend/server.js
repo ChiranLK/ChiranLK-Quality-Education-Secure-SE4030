@@ -31,6 +31,11 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
+// When deployed behind a proxy (Render/Vercel), use the real client IP for rate limiting
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
+
 // Middleware — allow the deployed frontend URL and localhost in dev
 const allowedOrigins = [
   'http://localhost:5173',
