@@ -26,6 +26,19 @@ export const saveTokens = async (tokens) => {
 };
 
 export const loadTokens = async () => {
+  if (process.env.GOOGLE_REFRESH_TOKEN) {
+    return {
+      refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
+      access_token: process.env.GOOGLE_ACCESS_TOKEN || undefined,
+    };
+  }
+  if (process.env.GOOGLE_TOKENS_JSON) {
+    try {
+      return JSON.parse(process.env.GOOGLE_TOKENS_JSON);
+    } catch {
+      // ignore invalid json
+    }
+  }
   try {
     const raw = await fs.readFile(TOKEN_PATH, 'utf8');
     return JSON.parse(raw);

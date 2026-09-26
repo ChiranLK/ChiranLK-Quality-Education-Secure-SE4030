@@ -18,8 +18,10 @@ import { createCalendarEvent } from "../services/googleCalendarService.js";
 
 
 
-// Public routes
-router.get("/", getAllTutoringSessions); // Filter by subject, grade, level via query params
+// V6-FIX: Require authentication to prevent unauthenticated exposure of student information.
+// Before: router.get("/", getAllTutoringSessions) — anonymous callers could retrieve participant PII.
+// After:  authenticateUser guard added; unauthenticated requests return 401.
+router.get("/", authenticateUser, getAllTutoringSessions); // Requires valid JWT
 router.get("/my-enrolled", authenticateUser, getMyEnrolledSessions);
 
 router.get("/tutor/:tutorId", getTutoringSessionsByTutor);
