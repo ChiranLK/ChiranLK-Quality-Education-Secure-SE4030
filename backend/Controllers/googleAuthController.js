@@ -7,6 +7,7 @@ import {
   BadRequestError,
 } from "../errors/customErrors.js";
 import { logSafeError } from "../utils/safeLogger.js";
+import { AUTH_COOKIE_NAME, getAuthCookieOptions } from "../utils/authCookie.js";
 
 const getOAuth2Client = () => {
   return new google.auth.OAuth2(
@@ -98,16 +99,10 @@ export const handleGoogleCallback = async (req, res) => {
     }
 
     // Create JWT token
-    const oneday = 24 * 60 * 60 * 1000;
     const token = createJWT({ userId: user._id, id: user._id, role: user.role });
 
     // Set cookie
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Lax",
-      maxAge: oneday,
-    });
+    res.cookie(AUTH_COOKIE_NAME, token, getAuthCookieOptions());
 
     // Redirect to frontend with auth success
     // Frontend will check for token in cookie and localStorage will be set via a redirect page

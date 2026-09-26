@@ -11,6 +11,7 @@ import emailRoutes from "./Routes/emailRoutes.js";
 import connectDB from "./Config/db.js";
 import { errorHandler } from "./Middleware/errorHandler.js";
 import { sanitizeProductionErrorResponses } from "./Middleware/errorResponseSanitizer.js";
+import { securityHeaders } from "./Middleware/securityHeaders.js";
 import { logSafeError } from "./utils/safeLogger.js";
 
 // Routes
@@ -32,6 +33,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+
+// Apply security headers before CORS, parsers, static files, and API routes.
+app.use(securityHeaders);
 
 // Middleware — allow the deployed frontend URL and localhost in dev
 const allowedOrigins = [

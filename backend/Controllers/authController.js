@@ -20,6 +20,11 @@ import {
   sendPasswordChangedEmail,
 } from "../services/feedbackMailService.js";
 import { logSafeError, logSafeEvent } from "../utils/safeLogger.js";
+import {
+  AUTH_COOKIE_NAME,
+  getAuthCookieClearOptions,
+  getAuthCookieOptions,
+} from "../utils/authCookie.js";
 
 const PUBLIC_SELF_REGISTRATION_ROLES = Object.freeze(["user", "tutor"]);
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -98,16 +103,10 @@ export const login = async (req, res) => {
   const isValidUser = user && (await bcrypt.compare(password, user.password));
   if (!isValidUser) throw new UnauthenticatedError("Invalid credentials");
 
-  const oneday = 24 * 60 * 60 * 1000;
-
   // Keep both keys if you have middleware expecting either `id` or `userId`
   const token = createJWT({ userId: user._id, id: user._id, role: user.role });
 
-  res.cookie("token", token, {
-    httpOnly: true,
-    expires: new Date(Date.now() + oneday),
-    secure: process.env.NODE_ENV === "production",
-  });
+  res.cookie(AUTH_COOKIE_NAME, token, getAuthCookieOptions());
 
   const roleMessage = user.role === "tutor" ? "Tutor logged in" : "User logged in";
 
@@ -138,10 +137,7 @@ export const login = async (req, res) => {
 };
 
 export const logout = (req, res) => {
-  res.cookie("token", "logout", {
-    httpOnly: true,
-    expires: new Date(Date.now()),
-  });
+  res.clearCookie(AUTH_COOKIE_NAME, getAuthCookieClearOptions());
   res.status(StatusCodes.OK).json({ msg: "User logged out" });
 };
 
@@ -593,10 +589,7 @@ export const deleteMyProfile = async (req, res) => {
     await User.findByIdAndDelete(userId);
     
     // Clear the auth cookie so user is logged out
-    res.cookie("token", "logout", {
-      httpOnly: true,
-      expires: new Date(Date.now()),
-    });
+    res.clearCookie(AUTH_COOKIE_NAME, getAuthCookieClearOptions());
 
     res.status(StatusCodes.OK).json({
       success: true,
