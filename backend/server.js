@@ -10,6 +10,9 @@ import emailRoutes from "./Routes/emailRoutes.js";
 
 import connectDB from "./Config/db.js";
 import { errorHandler } from "./Middleware/errorHandler.js";
+import { sanitizeProductionErrorResponses } from "./Middleware/errorResponseSanitizer.js";
+import { securityHeaders } from "./Middleware/securityHeaders.js";
+import { logSafeError } from "./utils/safeLogger.js";
 
 // Routes
 import authRouter from "./Routes/authRouter.js";
@@ -30,6 +33,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+
+// Apply security headers before CORS, parsers, static files, and API routes.
+app.use(securityHeaders);
 
 // Middleware — allow the deployed frontend URL and localhost in dev
 const allowedOrigins = [
@@ -53,6 +59,7 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use(sanitizeProductionErrorResponses);
 
 // Serve uploaded files (profile pictures etc.) as static files
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
@@ -101,5 +108,5 @@ const PORT = process.env.PORT || 5000;
 // Start server immediately
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is running on port ${PORT}`);
-  connectDB().catch(err => console.error("Database connection error:", err.message));
+  connectDB().catch(err => logSafeError("database_startup_failed", err, { statusCode: 500 }));
 });

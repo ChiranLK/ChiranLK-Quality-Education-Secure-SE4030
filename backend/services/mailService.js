@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { logSafeEvent } from "../utils/safeLogger.js";
 
 /**
  * Creates a fresh transporter each time sendMail is called.
@@ -25,7 +26,7 @@ const createTransporter = () => {
     ? process.env.SANDBOX_MAIL_PASS
     : process.env.GMAIL_MAIL_PASS;
 
-  console.log(`[MailService] SMTP provider=${provider} host=${host} port=${port} user=${user}`);
+  logSafeEvent("mail_transport_configured", { provider, port });
 
   return nodemailer.createTransport({
     host,

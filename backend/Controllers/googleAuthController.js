@@ -6,6 +6,8 @@ import {
   UnauthenticatedError,
   BadRequestError,
 } from "../errors/customErrors.js";
+import { logSafeError } from "../utils/safeLogger.js";
+import { AUTH_COOKIE_NAME, getAuthCookieOptions } from "../utils/authCookie.js";
 
 const getOAuth2Client = () => {
   return new google.auth.OAuth2(
@@ -48,8 +50,8 @@ export const handleGoogleCallback = async (req, res) => {
       if (state) {
         state_data = JSON.parse(decodeURIComponent(state));
       }
-    } catch (e) {
-      console.log("Could not parse state");
+    } catch (error) {
+      logSafeError("oauth_state_parse_failed", error, { statusCode: 400 });
     }
 
     const oauth2Client = getOAuth2Client();
@@ -97,16 +99,10 @@ export const handleGoogleCallback = async (req, res) => {
     }
 
     // Create JWT token
-    const oneday = 24 * 60 * 60 * 1000;
     const token = createJWT({ userId: user._id, id: user._id, role: user.role });
 
     // Set cookie
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Lax",
-      maxAge: oneday,
-    });
+    res.cookie(AUTH_COOKIE_NAME, token, getAuthCookieOptions());
 
     // Redirect to frontend with auth success
     // Frontend will check for token in cookie and localStorage will be set via a redirect page
@@ -117,11 +113,11 @@ export const handleGoogleCallback = async (req, res) => {
 
     res.redirect(successUrl.toString());
   } catch (error) {
-    console.error("Google OAuth error:", error);
+    logSafeError("google_oauth_callback_failed", error, { statusCode: 500 });
     
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     const errorUrl = new URL(`${frontendUrl}/auth-error`);
-    errorUrl.searchParams.append('message', error.message || 'Authentication failed');
+    errorUrl.searchParams.append('message', 'Authentication failed');
     
     res.redirect(errorUrl.toString());
   }

@@ -1,20 +1,21 @@
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
+import { logSafeError, logSafeEvent } from '../utils/safeLogger.js';
 
 const connectDB = async () => {
   const primaryUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/quality_education';
   try {
     const conn = await mongoose.connect(primaryUri, { serverSelectionTimeoutMS: 3000 });
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    logSafeEvent('database_connected', { outcome: 'primary' });
   } catch (error) {
-    console.log(`Could not connect to MongoDB at ${primaryUri} (${error.message}). Starting In-Memory MongoDB fallback...`);
+    logSafeError('primary_database_connection_failed', error, { statusCode: 500 });
     try {
       const mongod = await MongoMemoryServer.create();
       const mongoUri = mongod.getUri();
-      const conn = await mongoose.connect(mongoUri);
-      console.log(`MongoDB Connected (In-Memory Fallback): ${conn.connection.host}`);
+      await mongoose.connect(mongoUri);
+      logSafeEvent('database_connected', { outcome: 'memory_fallback' });
     } catch (memErr) {
-      console.error(`MongoDB Connection Error: ${memErr.message}`);
+      logSafeError('database_connection_failed', memErr, { statusCode: 500 });
       process.exit(1);
     }
   }

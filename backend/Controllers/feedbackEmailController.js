@@ -1,4 +1,5 @@
 import { sendMail } from "../services/mailService.js";
+import { logSafeError } from "../utils/safeLogger.js";
 
 export const sendFeedbackNotification = async (req, res) => {
   try {
@@ -53,10 +54,9 @@ ${message}
       message: "Feedback notification email sent (check Mailtrap inbox)",
     });
   } catch (err) {
-    console.error("sendFeedbackNotification error:", err);
+    logSafeError("feedback_notification_email_failed", err, { statusCode: 500 });
     return res.status(500).json({
       message: "Failed to send feedback notification email",
-      error: err?.message || "Unknown error",
     });
   }
 };

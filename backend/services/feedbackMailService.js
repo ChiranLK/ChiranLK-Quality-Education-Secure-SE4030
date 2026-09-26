@@ -1,4 +1,5 @@
 import { sendMail } from "./mailService.js";
+import { logSafeError } from "../utils/safeLogger.js";
 
 const isTrue = (v) => String(v).toLowerCase() === "true";
 
@@ -62,7 +63,7 @@ TutorConnect Team
 
     await sendMail({ to: email, subject, text, html });
   } catch (err) {
-    console.error("Password reset email failed:", err.message);
+    logSafeError("password_reset_email_failed", err, { statusCode: 500 });
   }
 };
 
@@ -123,7 +124,7 @@ TutorConnect Team
 
     await sendMail({ to: email, subject, text, html });
   } catch (err) {
-    console.error("Password changed email failed:", err.message);
+    logSafeError("password_changed_email_failed", err, { statusCode: 500 });
   }
 };
 
@@ -188,7 +189,7 @@ TutorConnect Team
 
     await sendMail({ to: email, subject, text, html });
   } catch (err) {
-    console.error("Login notification email failed:", err.message);
+    logSafeError("login_notification_email_failed", err, { statusCode: 500 });
   }
 };
 
@@ -525,4 +526,4 @@ TutorConnect Team
 
     await sendMail({ to: tutorEmail, subject, text, html });
   }
-};
+};

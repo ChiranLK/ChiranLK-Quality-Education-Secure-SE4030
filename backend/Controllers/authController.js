@@ -4,6 +4,10 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { createJWT } from "../utils/generateToken.js";
 import { hashPassword } from "../utils/passwordUtils.js";
+import {
+  meetsPasswordPolicy,
+  PASSWORD_POLICY_MESSAGE,
+} from "../utils/passwordPolicy.js";
 import { StatusCodes } from "http-status-codes";
 import {
   UnauthenticatedError,
@@ -15,14 +19,26 @@ import {
   sendPasswordResetEmail,
   sendPasswordChangedEmail,
 } from "../services/feedbackMailService.js";
+import { logSafeError, logSafeEvent } from "../utils/safeLogger.js";
+import {
+  AUTH_COOKIE_NAME,
+  getAuthCookieClearOptions,
+  getAuthCookieOptions,
+} from "../utils/authCookie.js";
 
 const PUBLIC_SELF_REGISTRATION_ROLES = Object.freeze(["user", "tutor"]);
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const publicErrorMessage = (error, fallback) =>
+  error?.statusCode && error.statusCode < 500 ? error.message : fallback;
 
 // Register a new user or tutor
 export const register = async (req, res) => {
   const { email, password, role, subjects, grade } = req.body || {};
   if (!email || !password) {
     throw new BadRequestError("Email and password are required");
+  }
+  if (!meetsPasswordPolicy(password)) {
+    throw new BadRequestError(PASSWORD_POLICY_MESSAGE);
   }
 
   const selfRegistrationRole = role || "user";
@@ -87,19 +103,10 @@ export const login = async (req, res) => {
   const isValidUser = user && (await bcrypt.compare(password, user.password));
   if (!isValidUser) throw new UnauthenticatedError("Invalid credentials");
 
-  const oneday = 24 * 60 * 60 * 1000;
-
   // Keep both keys if you have middleware expecting either `id` or `userId`
   const token = createJWT({ userId: user._id, id: user._id, role: user.role });
-  
-  console.log('JWT Token created:', token);
-  console.log('Token length:', token?.length);
 
-  res.cookie("token", token, {
-    httpOnly: true,
-    expires: new Date(Date.now() + oneday),
-    secure: process.env.NODE_ENV === "production",
-  });
+  res.cookie(AUTH_COOKIE_NAME, token, getAuthCookieOptions());
 
   const roleMessage = user.role === "tutor" ? "Tutor logged in" : "User logged in";
 
@@ -119,10 +126,6 @@ export const login = async (req, res) => {
       tutorProfile: user.tutorProfile,
     },
   };
-  
-  console.log('Login response token:', responseData.token);
-  console.log('Login response token length:', responseData.token?.length);
-
   // Fire-and-forget: send login notification email (never delays response)
   sendLoginNotificationEmail({
     fullName: user.fullName,
@@ -134,54 +137,33 @@ export const login = async (req, res) => {
 };
 
 export const logout = (req, res) => {
-  res.cookie("token", "logout", {
-    httpOnly: true,
-    expires: new Date(Date.now()),
-  });
+  res.clearCookie(AUTH_COOKIE_NAME, getAuthCookieClearOptions());
   res.status(StatusCodes.OK).json({ msg: "User logged out" });
 };
 
-// Check if email exists and return its role
+// Retained for API compatibility. Never disclose account existence or role.
 export const checkEmail = async (req, res) => {
-  try {
-    const { email } = req.body;
+  const email =
+    typeof req.body?.email === "string"
+      ? req.body.email.trim().toLowerCase()
+      : "";
 
-    if (!email) {
-      return res.status(StatusCodes.BAD_REQUEST).json({
-        success: false,
-        msg: "Email is required",
-      });
-    }
-
-    const user = await User.findOne({ email }).select("role");
-
-    if (!user) {
-      return res.status(StatusCodes.NOT_FOUND).json({
-        success: false,
-        msg: "Email not found",
-      });
-    }
-
-    res.status(StatusCodes.OK).json({
-      success: true,
-      role: user.role,
-      email: email,
-    });
-  } catch (error) {
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+  if (!email || email.length > 254 || !EMAIL_PATTERN.test(email)) {
+    return res.status(StatusCodes.BAD_REQUEST).json({
       success: false,
-      msg: "Failed to check email",
-      error: error.message,
+      msg: "A valid email address is required",
     });
   }
+
+  return res.status(StatusCodes.OK).json({
+    success: true,
+    msg: "If the email is registered, continue with the standard sign-in or recovery flow.",
+  });
 };
 
 // Update user profile
 export const updateProfile = async (req, res) => {
   try {
-    console.log('Request received:', req.body);
-    console.log('User from middleware:', req.user);
-    
     const userId = req.user._id;
     if (!userId) {
       throw new BadRequestError("User ID not found in request");
@@ -201,14 +183,10 @@ export const updateProfile = async (req, res) => {
     if (grade !== undefined) updateData.grade = grade;
     if (tutorProfile) updateData.tutorProfile = tutorProfile;
 
-    console.log('Update data:', updateData);
-
     const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
       new: true,
       runValidators: true,
     });
-
-    console.log('Updated user:', updatedUser);
 
     if (!updatedUser) {
       throw new NotFoundError("User not found");
@@ -229,24 +207,24 @@ export const updateProfile = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Update profile error:', error);
+    logSafeError("profile_update_failed", error, {
+      statusCode: error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR,
+    });
     
     if (error.code === 11000) {
       return res.status(StatusCodes.CONFLICT).json({
         success: false,
         msg: "Email already exists",
-        error: error.message,
       });
     }
     
     // Return proper error response with details
     const statusCode = error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR;
-    const errorMsg = error.message || "Failed to update profile";
+    const errorMsg = publicErrorMessage(error, "Failed to update profile");
     
     res.status(statusCode).json({
       success: false,
       msg: errorMsg,
-      error: errorMsg,
     });
   }
 };
@@ -262,6 +240,9 @@ export const createAdmin = async (req, res) => {
         "Email, password, full name, phone number, and location are all required"
       );
     }
+    if (!meetsPasswordPolicy(password)) {
+      throw new BadRequestError(PASSWORD_POLICY_MESSAGE);
+    }
 
     // Check if email already exists
     const existingUser = await User.findOne({ email });
@@ -282,12 +263,7 @@ export const createAdmin = async (req, res) => {
       role: "admin",
     });
 
-    console.log("Admin user created:", {
-      _id: adminUser._id,
-      email: adminUser.email,
-      fullName: adminUser.fullName,
-      role: adminUser.role,
-    });
+    logSafeEvent("admin_account_created", { outcome: "success" });
 
     res.status(StatusCodes.CREATED).json({
       msg: "Admin account created successfully",
@@ -301,23 +277,23 @@ export const createAdmin = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Create admin error:", error);
+    logSafeError("admin_account_creation_failed", error, {
+      statusCode: error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR,
+    });
 
     if (error.code === 11000) {
       return res.status(StatusCodes.CONFLICT).json({
         success: false,
         msg: "Email already exists",
-        error: error.message,
       });
     }
 
     const statusCode = error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR;
-    const errorMsg = error.message || "Failed to create admin account";
+    const errorMsg = publicErrorMessage(error, "Failed to create admin account");
 
     res.status(statusCode).json({
       success: false,
       msg: errorMsg,
-      error: errorMsg,
     });
   }
 };
@@ -333,6 +309,9 @@ export const setupInitialAdmin = async (req, res) => {
         "Email, password, full name, phone number, and location are all required"
       );
     }
+    if (!meetsPasswordPolicy(password)) {
+      throw new BadRequestError(PASSWORD_POLICY_MESSAGE);
+    }
 
     // Check if email already exists
     const existingUser = await User.findOne({ email });
@@ -353,12 +332,7 @@ export const setupInitialAdmin = async (req, res) => {
       role: "admin",
     });
 
-    console.log("Initial admin user created:", {
-      _id: adminUser._id,
-      email: adminUser.email,
-      fullName: adminUser.fullName,
-      role: adminUser.role,
-    });
+    logSafeEvent("initial_admin_account_created", { outcome: "success" });
 
     res.status(StatusCodes.CREATED).json({
       msg: "Admin account created successfully",
@@ -372,23 +346,23 @@ export const setupInitialAdmin = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Setup initial admin error:", error);
+    logSafeError("initial_admin_setup_failed", error, {
+      statusCode: error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR,
+    });
 
     if (error.code === 11000) {
       return res.status(StatusCodes.CONFLICT).json({
         success: false,
         msg: "Email already exists",
-        error: error.message,
       });
     }
 
     const statusCode = error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR;
-    const errorMsg = error.message || "Failed to create admin account";
+    const errorMsg = publicErrorMessage(error, "Failed to create admin account");
 
     res.status(statusCode).json({
       success: false,
       msg: errorMsg,
-      error: errorMsg,
     });
   }
 };
@@ -418,11 +392,12 @@ export const getMe = async (req, res) => {
       tutorProfile: user.tutorProfile,
     });
   } catch (error) {
-    console.error('Get me error:', error);
+    logSafeError("current_user_fetch_failed", error, {
+      statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+    });
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       success: false,
       msg: 'Failed to fetch user',
-      error: error.message,
     });
   }
 };
@@ -471,11 +446,12 @@ export const getAllUsers = async (req, res) => {
       })),
     });
   } catch (error) {
-    console.error('Get all users error:', error);
+    logSafeError("user_list_fetch_failed", error, {
+      statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+    });
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       success: false,
       msg: 'Failed to fetch users',
-      error: error.message,
     });
   }
 };
@@ -532,11 +508,12 @@ export const deleteUser = async (req, res) => {
       msg: 'User deleted successfully',
     });
   } catch (error) {
-    console.error('Delete user error:', error);
+    logSafeError("user_deletion_failed", error, {
+      statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+    });
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       success: false,
       msg: 'Failed to delete user',
-      error: error.message,
     });
   }
 };
@@ -575,11 +552,13 @@ export const uploadAvatar = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error("Upload avatar error:", error);
+    logSafeError("avatar_upload_failed", error, {
+      statusCode: error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR,
+    });
     const statusCode = error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR;
     res.status(statusCode).json({
       success: false,
-      msg: error.message || "Failed to update profile picture",
+      msg: publicErrorMessage(error, "Failed to update profile picture"),
     });
   }
 };
@@ -610,21 +589,20 @@ export const deleteMyProfile = async (req, res) => {
     await User.findByIdAndDelete(userId);
     
     // Clear the auth cookie so user is logged out
-    res.cookie("token", "logout", {
-      httpOnly: true,
-      expires: new Date(Date.now()),
-    });
+    res.clearCookie(AUTH_COOKIE_NAME, getAuthCookieClearOptions());
 
     res.status(StatusCodes.OK).json({
       success: true,
       msg: "Your profile has been deleted successfully",
     });
   } catch (error) {
-    console.error('Delete my profile error:', error);
+    logSafeError("profile_deletion_failed", error, {
+      statusCode: error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR,
+    });
     const statusCode = error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR;
     res.status(statusCode).json({
       success: false,
-      msg: error.message || 'Failed to delete profile',
+      msg: publicErrorMessage(error, 'Failed to delete profile'),
     });
   }
 };
@@ -650,11 +628,13 @@ export const removeAvatar = async (req, res) => {
       avatar: defaultAvatar,
     });
   } catch (error) {
-    console.error("Remove avatar error:", error);
+    logSafeError("avatar_removal_failed", error, {
+      statusCode: error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR,
+    });
     const statusCode = error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR;
     res.status(statusCode).json({
       success: false,
-      msg: error.message || "Failed to remove profile picture",
+      msg: publicErrorMessage(error, "Failed to remove profile picture"),
     });
   }
 };
@@ -700,8 +680,9 @@ export const resetPassword = async (req, res) => {
   const { password } = req.body;
 
   if (!token) throw new BadRequestError("Reset token is required");
-  if (!password || password.length < 6)
-    throw new BadRequestError("Password must be at least 6 characters");
+  if (!meetsPasswordPolicy(password)) {
+    throw new BadRequestError(PASSWORD_POLICY_MESSAGE);
+  }
 
   // Hash the raw token from the URL to compare with DB
   const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
@@ -732,4 +713,4 @@ export const resetPassword = async (req, res) => {
     msg: "Password reset successfully. You can now log in with your new password.",
   });
 };
-
+
