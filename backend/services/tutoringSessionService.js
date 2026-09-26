@@ -4,6 +4,7 @@ import { BadRequestError, UnauthorizedError, NotFoundError } from "../errors/cus
 import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from "./googleCalendarService.js";
 import * as validation from "../validations/tutoringSession.validation.js";
 import * as utils from "../utils/tutoringSessionUtils.js";
+import { logSafeError, logSafeEvent } from "../utils/safeLogger.js";
 
 // --- Helpers ---
 const ensureSessionExists = (session) => {
@@ -60,8 +61,6 @@ export async function createSession(user, payload) {
     isPublished: true,
   };
 
-  console.log("📝 Creating tutoring session with title:", title);
-
   const session = await TutoringSession.create(sessionData);
   await session.populate("tutor", "fullName email role");
 
@@ -71,13 +70,9 @@ export async function createSession(user, payload) {
       const googleEventId = await createCalendarEvent(session);
       session.googleEventId = googleEventId;
       await session.save();
-      console.log("✅ Tutoring session created successfully with calendar event:", {
-        sessionId: session._id,
-        title: session.title,
-        googleEventId,
-      });
+      logSafeEvent("session_calendar_event_created", { outcome: "success" });
     } catch (err) {
-      console.error("⚠️ Calendar event creation failed (session saved):", err.message);
+      logSafeError("session_calendar_event_creation_failed", err, { statusCode: 500 });
       // Session is still created even if calendar fails
     }
   }
@@ -102,13 +97,9 @@ export async function updateSession(user, id, updates) {
   if (updated.googleEventId) {
     try {
       await updateCalendarEvent(updated.googleEventId, updated);
-      console.log("✅ Session and calendar event updated:", {
-        sessionId: updated._id,
-        title: updated.title,
-        googleEventId: updated.googleEventId,
-      });
+      logSafeEvent("session_calendar_event_updated", { outcome: "success" });
     } catch (err) {
-      console.error("⚠️ Calendar update failed (session still updated):", err.message);
+      logSafeError("session_calendar_event_update_failed", err, { statusCode: 500 });
       // Session is updated even if calendar update fails
     }
   }
@@ -125,15 +116,15 @@ export async function deleteSession(user, id) {
   if (googleEventId) {
     try {
       await deleteCalendarEvent(googleEventId);
-      console.log("✅ Calendar event deleted:", googleEventId);
+      logSafeEvent("session_calendar_event_deleted", { outcome: "success" });
     } catch (err) {
-      console.error("⚠️ Calendar delete failed:", err.message);
+      logSafeError("session_calendar_event_deletion_failed", err, { statusCode: 500 });
       // Continue with session deletion even if calendar delete fails
     }
   }
 
   await TutoringSession.findByIdAndDelete(id);
-  console.log("✅ Session deleted:", { sessionId: id, title: session.title });
+  logSafeEvent("tutoring_session_deleted", { outcome: "success" });
   return;
 }
 
@@ -182,7 +173,7 @@ export async function joinSession(user, id) {
       const updated = await TutoringSession.findById(id).populate("participants.userId", "email");
       await updateCalendarEvent(session.googleEventId, updated);
     } catch (err) {
-      console.error("Failed to sync attendees:", err.message);
+      logSafeError("calendar_attendee_sync_failed", err, { statusCode: 500 });
     }
   }
 
@@ -203,7 +194,7 @@ export async function leaveSession(user, id) {
       const updated = await TutoringSession.findById(id).populate("participants.userId", "email");
       await updateCalendarEvent(session.googleEventId, updated);
     } catch (err) {
-      console.error("Failed to sync attendees:", err.message);
+      logSafeError("calendar_attendee_sync_failed", err, { statusCode: 500 });
     }
   }
 

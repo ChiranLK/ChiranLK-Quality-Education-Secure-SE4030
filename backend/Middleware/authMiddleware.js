@@ -1,6 +1,7 @@
 import User from "../models/UserModel.js";
 import { UnauthenticatedError, UnauthorizedError } from "../errors/customErrors.js";
 import { verifyJWT } from "../utils/generateToken.js";
+import { logSafeError } from "../utils/safeLogger.js";
 
 /**
  * Reads JWT from:
@@ -10,34 +11,26 @@ import { verifyJWT } from "../utils/generateToken.js";
 export const protect = async (req, res, next) => {
   try {
     const auth = req.headers.authorization || "";
-    console.log('Authorization header:', auth);
-    
+
     const token = auth.startsWith("Bearer ")
       ? auth.split(" ")[1]
       : null;
 
-    console.log('Extracted token:', token?.substring(0, 20) + '...');
-
     if (!token) {
-      console.log('No token found!');
       throw new UnauthenticatedError("Not authorized, no token");
     }
 
     const decoded = verifyJWT(token);
-    console.log('Decoded token:', decoded);
 
     // Support payload styles: { id }, { userId }, { _id }
     const userId = decoded?.id || decoded?.userId || decoded?._id;
-
-    console.log('User ID from token:', userId);
 
     if (!userId) {
       throw new UnauthenticatedError("Invalid token payload");
     }
 
     const user = await User.findById(userId);
-    console.log('User found:', user ? user.email : 'NOT FOUND');
-    
+
     if (!user) {
       throw new UnauthenticatedError("User not found");
     }
@@ -45,7 +38,11 @@ export const protect = async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
-    console.error('Protect middleware error:', error.message);
+    logSafeError("authentication_rejected", error, {
+      method: req.method,
+      route: req.route?.path || "protected_route",
+      statusCode: 401,
+    });
     throw new UnauthenticatedError("Not authorized, token failed");
   }
 };

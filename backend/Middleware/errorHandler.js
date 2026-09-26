@@ -2,53 +2,56 @@
  * Centralized Error Handler Middleware
  * Must be defined LAST in middleware stack (after all routes)
  */
+import { logSafeError } from "../utils/safeLogger.js";
+import { GENERIC_SERVER_ERROR } from "./errorResponseSanitizer.js";
+
 const errorHandler = (err, req, res, next) => {
-  const statusCode = err.statusCode || 500;
-  const isDevelopment = process.env.NODE_ENV !== "production";
-
-  // Log error details
-  console.error(`[${new Date().toISOString()}] Error:`, {
-    statusCode,
-    name: err.name,
-    message: err.message,
-    path: req.path,
-    method: req.method,
-    ...(isDevelopment && { stack: err.stack }),
-  });
-
-  const errorResponse = {
-    success: false,
-    message: err.message || "Internal Server Error",
-    statusCode,
-    timestamp: new Date().toISOString(),
-    ...(isDevelopment && {
-      error: {
-        name: err.name,
-        stack: err.stack,
-      },
-    }),
-  };
+  let statusCode = err.statusCode || 500;
+  let message = statusCode >= 500
+    ? GENERIC_SERVER_ERROR
+    : err.message || "Request failed";
+  let errors;
 
   // Mongoose validation error
   if (err.name === "ValidationError") {
-    errorResponse.statusCode = 400;
-    errorResponse.errors = Object.values(err.errors).map((e) => e.message);
+    statusCode = 400;
+    message = "Validation failed";
+    errors = Object.values(err.errors).map((error) => error.message);
   }
 
   // Mongoose cast error (invalid ID)
   if (err.name === "CastError") {
-    errorResponse.statusCode = 400;
-    errorResponse.message = `Invalid ID format: ${err.value}`;
+    statusCode = 400;
+    message = "Invalid identifier format";
   }
 
   // Mongoose duplicate key error
   if (err.code === 11000) {
-    const field = Object.keys(err.keyPattern)[0];
-    errorResponse.statusCode = 400;
-    errorResponse.message = `${field} already exists`;
+    const field = Object.keys(err.keyPattern || {})[0];
+    statusCode = 400;
+    message = field ? `${field} already exists` : "Resource already exists";
   }
 
-  res.status(errorResponse.statusCode).json(errorResponse);
+  const routePattern = req.route?.path
+    ? `${req.baseUrl || ""}${req.route.path}`
+    : "unmatched_route";
+
+  logSafeError("request_failed", err, {
+    method: req.method,
+    route: routePattern,
+    statusCode,
+  });
+
+  const errorResponse = {
+    success: false,
+    message,
+    statusCode,
+    timestamp: new Date().toISOString(),
+  };
+
+  if (errors) errorResponse.errors = errors;
+
+  res.status(statusCode).json(errorResponse);
 };
 
 export { errorHandler };

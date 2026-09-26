@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import { logSafeError, logSafeEvent } from './utils/safeLogger.js';
 dotenv.config();
 
 const API_URL = 'http://localhost:5000/api';
@@ -40,7 +41,8 @@ const testUsers = [
 ];
 
 async function seedUsers() {
-  console.log('Starting to seed test users...\n');
+  const result = { created: 0, skipped: 0, failed: 0 };
+  logSafeEvent('user_seed_started', { count: testUsers.length });
 
   for (const user of testUsers) {
     try {
@@ -56,29 +58,24 @@ async function seedUsers() {
       if (!response.ok) {
         throw new Error(data.msg || response.statusText);
       }
-      
-      console.log(`✓ Created ${user.role}: ${user.email}`);
-      console.log(`  Name: ${user.fullName}`);
-      if (user.subjects) {
-        console.log(`  Subjects: ${user.subjects.join(', ')}`);
-      }
-      console.log();
+
+      result.created += 1;
     } catch (error) {
       if (error.message && error.message.includes('already exists')) {
-        console.log(`⚠ User already exists: ${user.email}`);
+        result.skipped += 1;
       } else {
-        console.error(`✗ Error creating user ${user.email}:`, error.message);
+        result.failed += 1;
+        logSafeError('user_seed_item_failed', error, { statusCode: 500 });
       }
     }
   }
 
-  console.log('\n✓ Seeding complete!');
-  console.log('\nYou can now log in with any of these credentials:');
-  testUsers.forEach(user => {
-    console.log(`  Email: ${user.email}`);
-    console.log(`  Password: ${user.password}`);
-    console.log();
+  logSafeEvent('user_seed_completed', {
+    count: result.created,
+    outcome: result.failed > 0 ? 'partial' : 'success',
   });
 }
 
-seedUsers().catch(console.error);
+seedUsers().catch((error) => {
+  logSafeError('user_seed_failed', error, { statusCode: 500 });
+});
