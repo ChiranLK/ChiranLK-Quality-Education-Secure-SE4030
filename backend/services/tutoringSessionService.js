@@ -145,11 +145,14 @@ export async function getAllSessions(query) {
 
   const filter = utils.buildFilter(query);
 
+  // V6-FIX: Response data minimization — participant PII (email, fullName) removed from
+  // the public listing. Tutor email is also excluded. Only public session fields returned.
+  // Before: .populate("participants.userId", "fullName email") exposed student emails.
   const [total, sessions] = await Promise.all([
     TutoringSession.countDocuments(filter),
     TutoringSession.find(filter)
-      .populate("tutor", "fullName email role")
-      .populate("participants.userId", "fullName email")
+      .populate("tutor", "fullName role")       // email removed from tutor in listing
+      .select("-participants")                   // V6-FIX: exclude entire participants array
       .sort({ "schedule.date": 1 })
       .skip(skip)
       .limit(limit)
@@ -209,7 +212,11 @@ export async function leaveSession(user, id) {
 
 export async function getTutorSessions(tutorId) {
   validation.validateObjectId(tutorId, "tutorId");
-  const sessions = await TutoringSession.find({ tutor: tutorId }).populate("tutor", "fullName email role").populate("participants.userId", "fullName email").sort({ "schedule.date": -1 });
+  // V6-FIX: Tutor public profile — do not expose participant emails on public tutor page.
+  const sessions = await TutoringSession.find({ tutor: tutorId })
+    .populate("tutor", "fullName role")
+    .select("-participants")                    // V6-FIX: no participant PII in public list
+    .sort({ "schedule.date": -1 });
   return sessions;
 }
 
