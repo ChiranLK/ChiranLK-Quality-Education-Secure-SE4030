@@ -1,0 +1,71 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>V7 Before — Original Email Route Code (Baseline 23faaa1)</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}body{font-family:"Segoe UI",sans-serif;background:#0d1117;color:#c9d1d9;padding:24px}
+  .header{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px 20px;margin-bottom:20px}
+  .bv{display:inline-block;background:#da3633;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;margin-right:6px}
+  .bb{display:inline-block;background:#9e6a03;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;margin-right:6px}
+  .bl{display:inline-block;background:#388bfd;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px}
+  h1{font-size:17px;color:#e6edf3;margin-top:10px}.meta{font-size:12px;color:#8b949e;margin-top:6px}
+  .code-block{background:#161b22;border:1px solid #30363d;border-radius:6px;overflow:hidden;margin-bottom:16px}
+  .code-header{background:#21262d;padding:8px 14px;font-size:12px;color:#8b949e;display:flex;justify-content:space-between;border-bottom:1px solid #30363d}
+  pre{padding:14px;overflow-x:auto;font-size:13px;line-height:1.7;font-family:"Cascadia Code","Consolas",monospace}
+  .vl{background:rgba(218,54,51,0.15);border-left:3px solid #da3633;display:block;margin:0 -14px;padding:0 14px}
+  .c{color:#8b949e}.k{color:#ff7b72}.s{color:#a5d6ff}.f{color:#d2a8ff}
+  .issue-box{background:#2d1117;border:1px solid #da3633;border-radius:6px;padding:14px 18px;margin:12px 0}
+  .issue-box h4{color:#f85149;font-size:13px;margin-bottom:8px}
+  .issue-box ul{padding-left:18px;font-size:13px;color:#c9d1d9;line-height:1.8}
+  .footer{font-size:11px;color:#484f58;margin-top:24px;border-top:1px solid #21262d;padding-top:12px}
+</style>
+</head>
+<body>
+<div class="header">
+  <span class="bv">V7</span><span class="bb">BEFORE FIX</span><span class="bl">BASELINE 23faaa1</span>
+  <h1>V7 — Original Email Routes: No Authentication on Email Endpoints</h1>
+  <div class="meta">Evidence type: Code inspection | Files: emailRoutes.js + feedbackEmailRoutes.js | 2026-09-26T09:56:51.599Z</div>
+</div>
+
+<div class="code-block">
+  <div class="code-header"><span>backend/Routes/emailRoutes.js — commit 23faaa1 (full file)</span><span>V7 Issue — Test Email Unauthenticated</span></div>
+  <pre><span class="k">import</span> express <span class="k">from</span> <span class="s">"express"</span>;
+<span class="k">import</span> { sendTestEmail } <span class="k">from</span> <span class="s">"../Controllers/emailController.js"</span>;
+<span class="c">// ⚠️  No protect or authenticateUser imported</span>
+
+<span class="k">const</span> router = express.<span class="f">Router</span>();
+
+<span class="c">// GET /api/email/test-email</span>
+<span class="vl">router.<span class="f">get</span>(<span class="s">"/test-email"</span>, sendTestEmail);   <span class="c">// ← NO AUTH — anyone can trigger real email send</span></span>
+
+<span class="k">export default</span> router;</pre>
+</div>
+
+<div class="code-block">
+  <div class="code-header"><span>backend/Routes/feedbackEmailRoutes.js — commit 23faaa1 (full file)</span><span>V7 Issue — Feedback Email Unauthenticated</span></div>
+  <pre><span class="k">import</span> express <span class="k">from</span> <span class="s">"express"</span>;
+<span class="k">import</span> { sendFeedbackNotification } <span class="k">from</span> <span class="s">"../Controllers/feedbackEmailController.js"</span>;
+<span class="c">// ⚠️  No protect or authenticateUser imported</span>
+
+<span class="k">const</span> router = express.<span class="f">Router</span>();
+
+<span class="c">// POST /api/email/feedback-notify</span>
+<span class="vl">router.<span class="f">post</span>(<span class="s">"/feedback-notify"</span>, sendFeedbackNotification);  <span class="c">// ← NO AUTH — anonymous email spam</span></span>
+
+<span class="k">export default</span> router;</pre>
+</div>
+
+<div class="issue-box">
+  <h4>&#128204; Affected Endpoints Summary (all V7)</h4>
+  <ul>
+    <li><code>GET  /api/email/test-email</code> — sends real email with no authentication</li>
+    <li><code>POST /api/email/feedback-notify</code> — sends admin notification email with user-controlled body</li>
+    <li><code>POST /api/google-calendar/events</code> — creates real calendar events (shown in V7_01)</li>
+    <li><code>GET  /api/google-calendar/callback</code> — returns raw OAuth tokens in response body (shown in V7_01)</li>
+    <li><strong>OWASP A01:2021 | CWE-306 | Severity: High</strong></li>
+  </ul>
+</div>
+<div class="footer">SE4030 Member 3 Evidence | Pramodya Alahakoon IT23405240 | 2026-09-26 | No files modified | No commits | No secrets displayed</div>
+</body>
+</html>

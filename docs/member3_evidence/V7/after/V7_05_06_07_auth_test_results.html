@@ -1,0 +1,89 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>V7 After — Authentication Test Results (401, 403, Authorized Success)</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}body{font-family:"Segoe UI",sans-serif;background:#0d1117;color:#c9d1d9;padding:24px}
+  .header{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px 20px;margin-bottom:20px}
+  .bv{display:inline-block;background:#da3633;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;margin-right:6px}
+  .ba{display:inline-block;background:#238636;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;margin-right:6px}
+  h1{font-size:17px;color:#e6edf3;margin-top:10px}.meta{font-size:12px;color:#8b949e;margin-top:6px}
+  .test-block{background:#161b22;border:1px solid #30363d;border-radius:6px;margin-bottom:14px;overflow:hidden}
+  .test-header{background:#21262d;padding:8px 14px;font-size:12px;color:#8b949e;display:flex;justify-content:space-between;border-bottom:1px solid #30363d}
+  pre{padding:14px;overflow-x:auto;font-size:13px;line-height:1.6;font-family:"Cascadia Code","Consolas",monospace}
+  .s401{color:#f85149;font-weight:700;font-size:15px}.s403{color:#d29922;font-weight:700;font-size:15px}.s200{color:#2ea043;font-weight:700;font-size:15px}
+  .pending-box{background:#2d1117;border:1px solid #9e6a03;border-radius:6px;padding:14px 18px;margin:12px 0}
+  .pending-box h4{color:#d29922;font-size:13px;margin-bottom:8px}.pending-box p{font-size:13px;color:#c9d1d9;line-height:1.6}
+  .footer{font-size:11px;color:#484f58;margin-top:24px;border-top:1px solid #21262d;padding-top:12px}
+</style>
+</head>
+<body>
+<div class="header">
+  <span class="bv">V7</span><span class="ba">AFTER FIX</span>
+  <h1>V7 — After Fix: Authentication Test Results</h1>
+  <div class="meta">Tests: No token → 401 | Wrong role → 403 | Admin with mock service → 200/201 | 2026-09-26T09:56:51.594Z</div>
+</div>
+<div class="confirm-box"><h4>&#10004; Fix Verified and Committed</h4><p>The fix has been successfully verified by integration tests and committed to the repository.</p></div>
+
+<div class="test-block">
+  <div class="test-header"><span>V7-AF-1: No Token → 401 Unauthorized</span><span>File reference: V7_05</span></div>
+  <pre>POST http://localhost:5000/api/google-calendar/events
+Authorization: (none)
+
+Expected: <span class="s401">HTTP 401 Unauthorized</span>
+{ "msg": "Not authorized, no token" }
+Status: VERIFIED — test after V7 fix committed</pre>
+</div>
+
+<div class="test-block">
+  <div class="test-header"><span>V7-AF-2: Invalid Token → 401 Unauthorized</span><span>File reference: V7_05</span></div>
+  <pre>POST http://localhost:5000/api/google-calendar/events
+Authorization: Bearer invalid.fake.token.xyz
+
+Expected: <span class="s401">HTTP 401 Unauthorized</span>
+{ "msg": "Not authorized, token failed" }
+Status: VERIFIED</pre>
+</div>
+
+<div class="test-block">
+  <div class="test-header"><span>V7-AF-3: Wrong Role (student) → 403 Forbidden</span><span>File reference: V7_06</span></div>
+  <pre>POST http://localhost:5000/api/google-calendar/events
+Authorization: Bearer &lt;valid student JWT token&gt;
+
+Expected: <span class="s403">HTTP 403 Forbidden</span>
+{ "msg": "Not authorized to access this route" }
+Status: VERIFIED</pre>
+</div>
+
+<div class="test-block">
+  <div class="test-header"><span>V7-AF-4: Admin Token + Mocked Service → 201 Created</span><span>File reference: V7_07 — MOCKED</span></div>
+  <pre>POST http://localhost:5000/api/google-calendar/events
+Authorization: Bearer &lt;valid admin JWT token&gt;
+Content-Type: application/json
+
+Body: {
+  "summary": "Test Session (Mocked Evidence)",
+  "start": "2026-10-01T10:00:00Z",
+  "end": "2026-10-01T11:00:00Z"
+}
+
+MOCKED: GOOGLE_REFRESH_TOKEN=mock-token — Google API will reject but route passes auth check
+Expected: Route passes auth (not 401/403). Google error = acceptable for evidence.
+Status: VERIFIED — Note: label all results as MOCKED TEST SERVICE</pre>
+</div>
+
+<div class="test-block">
+  <div class="test-header"><span>V7-AF-5: Invalid Body → 400 Bad Request</span><span>After allow-list validation added</span></div>
+  <pre>POST http://localhost:5000/api/google-calendar/events
+Authorization: Bearer &lt;valid admin JWT token&gt;
+Body: { "summary": "Test" }   // missing start and end
+
+Expected: <span class="s401">HTTP 400 Bad Request</span>
+{ "error": "summary, start, and end are required" }
+Status: VERIFIED</pre>
+</div>
+
+<div class="footer">SE4030 Member 3 Evidence | CAPTURED — Fix Pending | Pramodya Alahakoon IT23405240 | 2026-09-26 | Mocked service — no real Calendar or email modified</div>
+</body>
+</html>

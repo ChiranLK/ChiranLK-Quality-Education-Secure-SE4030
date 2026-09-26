@@ -1,0 +1,79 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>V6 Before — Original Route Code (Baseline 23faaa1)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Segoe UI", sans-serif; background: #0d1117; color: #c9d1d9; padding: 24px; }
+  .header { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px 20px; margin-bottom: 20px; }
+  .badge-v { display:inline-block; background:#da3633; color:#fff; font-size:11px; font-weight:700; padding:3px 8px; border-radius:4px; margin-right:6px; }
+  .badge-b { display:inline-block; background:#9e6a03; color:#fff; font-size:11px; font-weight:700; padding:3px 8px; border-radius:4px; margin-right:6px; }
+  .badge-bl{ display:inline-block; background:#388bfd; color:#fff; font-size:11px; font-weight:700; padding:3px 8px; border-radius:4px; }
+  h1 { font-size:17px; color:#e6edf3; margin-top:10px; }
+  .meta { font-size:12px; color:#8b949e; margin-top:6px; }
+  .finding { background:#2d1117; border:1px solid #da3633; border-left:4px solid #da3633; border-radius:6px; padding:14px 18px; margin-bottom:16px; }
+  .finding h3 { color:#f85149; font-size:14px; margin-bottom:6px; }
+  .finding p { font-size:13px; color:#8b949e; line-height:1.6; }
+  .code-block { background:#161b22; border:1px solid #30363d; border-radius:6px; overflow:hidden; margin-bottom:16px; }
+  .code-header { background:#21262d; padding:8px 14px; font-size:12px; color:#8b949e; display:flex; justify-content:space-between; border-bottom:1px solid #30363d; }
+  pre { padding:14px; overflow-x:auto; font-size:13px; line-height:1.7; font-family:"Cascadia Code","Consolas",monospace; }
+  .vline { background:rgba(218,54,51,0.15); border-left:3px solid #da3633; display:block; margin:0 -14px; padding:0 14px; }
+  .gline { background:rgba(46,160,67,0.08); border-left:3px solid #2ea043; display:block; margin:0 -14px; padding:0 14px; }
+  .c{color:#8b949e} .k{color:#ff7b72} .s{color:#a5d6ff} .f{color:#d2a8ff}
+  .issue-box { background:#2d1117; border:1px solid #da3633; border-radius:6px; padding:14px 18px; margin:12px 0; }
+  .issue-box h4 { color:#f85149; font-size:13px; margin-bottom:8px; }
+  .issue-box ul { padding-left:18px; font-size:13px; color:#c9d1d9; line-height:1.8; }
+  .footer { font-size:11px; color:#484f58; margin-top:24px; border-top:1px solid #21262d; padding-top:12px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <span class="badge-v">V6</span><span class="badge-b">BEFORE FIX</span><span class="badge-bl">BASELINE 23faaa1</span>
+  <h1>V6 — Original Route Code: Unauthenticated Student Data Exposure</h1>
+  <div class="meta">Evidence type: Code inspection from baseline commit | File: backend/Routes/tutoringSessionRouter.js | Collected: 2026-09-26T09:56:51.588Z | Branch: security-fixes-IT23405240-ALAHAKOON-PB</div>
+</div>
+<div class="finding">
+  <h3>&#9888; Vulnerability Finding</h3>
+  <p>In baseline commit <strong>23faaa1</strong>, the <code>GET /api/tutoring-sessions/</code> route has <strong>no authentication middleware</strong>. The service layer uses <code>.populate("participants.userId","fullName email")</code> which returns enrolled student email addresses to any anonymous caller.</p>
+</div>
+<div class="code-block">
+  <div class="code-header"><span>backend/Routes/tutoringSessionRouter.js — commit 23faaa1</span><span>V6 Root Cause — Layer 1</span></div>
+  <pre><span class="k">import</span> { Router } <span class="k">from</span> <span class="s">"express"</span>;
+<span class="k">import</span> { createTutoringSession, getAllTutoringSessions, ... } <span class="k">from</span> <span class="s">"../Controllers/tutoringSessionController.js"</span>;
+<span class="k">import</span> { authenticateUser, authorizePermissions } <span class="k">from</span> <span class="s">"../Middleware/authMiddleware.js"</span>;
+
+<span class="k">const</span> router = <span class="f">Router</span>();
+
+<span class="c">// Public routes</span>
+<span class="vline"><span class="c">// VULNERABLE: no authenticateUser middleware — anonymous HTTP callers reach handler directly</span>
+router.<span class="f">get</span>(<span class="s">"/"</span>, getAllTutoringSessions);  <span class="c">// ← LINE 22 — MISSING AUTH</span></span>
+router.<span class="f">get</span>(<span class="s">"/my-enrolled"</span>, authenticateUser, getMyEnrolledSessions);
+
+<span class="c">// Protected routes — correctly guarded (compare: these have authenticateUser)</span>
+<span class="gline">router.<span class="f">post</span>(<span class="s">"/"</span>, authenticateUser, <span class="f">authorizePermissions</span>(<span class="s">"tutor"</span>,<span class="s">"admin"</span>), createTutoringSession);
+router.<span class="f">put</span>(<span class="s">"/:id"</span>, authenticateUser, <span class="f">authorizePermissions</span>(<span class="s">"tutor"</span>,<span class="s">"admin"</span>), updateTutoringSession);
+router.<span class="f">delete</span>(<span class="s">"/:id"</span>, authenticateUser, <span class="f">authorizePermissions</span>(<span class="s">"tutor"</span>,<span class="s">"admin"</span>), deleteTutoringSession);</span>
+<span class="gline">router.<span class="f">post</span>(<span class="s">"/:id/join"</span>, authenticateUser, joinTutoringSession);
+router.<span class="f">post</span>(<span class="s">"/:id/leave"</span>, authenticateUser, leaveTutoringSession);</span></pre>
+</div>
+<div class="code-block">
+  <div class="code-header"><span>backend/services/tutoringSessionService.js — commit 23faaa1 (lines 148-157)</span><span>V6 Root Cause — Layer 2: PII Population</span></div>
+  <pre>TutoringSession.<span class="f">find</span>(filter)
+  .<span class="f">populate</span>(<span class="s">"tutor"</span>, <span class="s">"fullName email role"</span>)
+<span class="vline">  .<span class="f">populate</span>(<span class="s">"participants.userId"</span>, <span class="s">"fullName email"</span>)  <span class="c">// VULNERABLE: student PII returned in public response</span></span>
+  .<span class="f">sort</span>({ <span class="s">"schedule.date"</span>: 1 }).skip(skip).limit(limit).<span class="f">lean</span>()</pre>
+</div>
+<div class="issue-box">
+  <h4>&#128204; What This Evidence Proves</h4>
+  <ul>
+    <li><strong>Route missing auth:</strong> router.get("/", getAllTutoringSessions) — no authenticateUser between path and handler</li>
+    <li><strong>PII in response:</strong> .populate("participants.userId","fullName email") returns student email addresses anonymously</li>
+    <li><strong>Inconsistency:</strong> All write routes (POST/PUT/DELETE) correctly require authenticateUser; GET was selectively omitted</li>
+    <li><strong>OWASP A01:2021 — Broken Access Control | CWE-862 Missing Authorization | CWE-200 Exposure of Sensitive Information</strong></li>
+    <li><strong>Severity: High</strong> — student PII exposed to the internet with zero authentication barrier</li>
+  </ul>
+</div>
+<div class="footer">SE4030 Member 3 Evidence | Pramodya Alahakoon IT23405240 | 2026-09-26 | No files modified | No commits | No secrets displayed</div>
+</body>
+</html>

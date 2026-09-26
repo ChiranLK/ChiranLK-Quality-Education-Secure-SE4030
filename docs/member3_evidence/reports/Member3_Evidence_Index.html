@@ -1,0 +1,306 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SE4030 Member 3 — Evidence Index</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Segoe UI",sans-serif;background:#0d1117;color:#c9d1d9;padding:0}
+  .topbar{background:#161b22;border-bottom:1px solid #30363d;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
+  .topbar h1{font-size:16px;color:#e6edf3}
+  .topbar .meta{font-size:11px;color:#8b949e}
+  .container{padding:24px}
+  .summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+  .stat-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px;text-align:center}
+  .stat-num{font-size:28px;font-weight:700;margin-bottom:4px}
+  .stat-label{font-size:11px;color:#8b949e}
+  .green{color:#2ea043}.amber{color:#d29922}.red{color:#f85149}.blue{color:#58a6ff}
+  h2{font-size:15px;color:#e6edf3;margin:20px 0 12px;padding-bottom:6px;border-bottom:1px solid #21262d}
+  table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:24px}
+  th{background:#21262d;padding:9px 10px;text-align:left;border:1px solid #30363d;color:#8b949e;font-weight:600}
+  td{padding:8px 10px;border:1px solid #21262d;vertical-align:top;line-height:1.5}
+  a{color:#58a6ff;text-decoration:none}
+  a:hover{text-decoration:underline}
+  .badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;white-space:nowrap}
+  .cap{background:#0d2d1e;color:#2ea043}.pend{background:#2d1f00;color:#d29922}.nc{background:#1c1c1c;color:#6e7681}
+  .bv6{background:#da3633}.bv7{background:#388bfd}.bv8{background:#8957e5}.bv14{background:#d29922}.bgt{background:#238636}
+  .bvbadge{display:inline-block;color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px}
+  .safety-box{background:#0d2d1e;border:1px solid #2ea043;border-radius:6px;padding:14px 20px;margin-bottom:20px}
+  .safety-box h3{color:#2ea043;font-size:13px;margin-bottom:8px}
+  .safety-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:12px}
+  .safety-item{display:flex;align-items:center;gap:6px}
+  .check{color:#2ea043;font-weight:700}
+  .footer{font-size:11px;color:#484f58;margin-top:24px;padding:14px 24px;border-top:1px solid #21262d;background:#161b22}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div>
+    <h1>SE4030 Security Assignment — Member 3 Evidence Index</h1>
+    <div class="meta">Pramodya Alahakoon | IT23405240 | Branch: security-fixes-IT23405240-ALAHAKOON-PB | Generated: 2026-09-26T09:56:51.578Z</div>
+  </div>
+  <div class="meta">Baseline: 23faaa1 | Current HEAD: 0e4313a</div>
+</div>
+
+<div class="container">
+
+<div class="summary-grid">
+  <div class="stat-card"><div class="stat-num green">4</div><div class="stat-label">Vulnerabilities Audited</div></div>
+  <div class="stat-card"><div class="stat-num green">2</div><div class="stat-label">V8 Commits Captured</div></div>
+  <div class="stat-card"><div class="stat-num amber">3</div><div class="stat-label">Fixes Pending (V6/V7/V14)</div></div>
+  <div class="stat-card"><div class="stat-num blue">20</div><div class="stat-label">Evidence Files Created</div></div>
+</div>
+
+<div class="safety-box">
+  <h3>&#10003; Safety Confirmation</h3>
+  <div class="safety-grid">
+    <div class="safety-item"><span class="check">&#10003;</span> Application source: NOT modified</div>
+    <div class="safety-item"><span class="check">&#10003;</span> Commits created: NONE</div>
+    <div class="safety-item"><span class="check">&#10003;</span> Push performed: NO</div>
+    <div class="safety-item"><span class="check">&#10003;</span> Real emails sent: NONE</div>
+    <div class="safety-item"><span class="check">&#10003;</span> Real Calendar events: NONE</div>
+    <div class="safety-item"><span class="check">&#10003;</span> Secrets exposed: NONE</div>
+    <div class="safety-item"><span class="check">&#10003;</span> Evidence fabricated: NO</div>
+    <div class="safety-item"><span class="check">&#10003;</span> Real student data used: NO (fake only)</div>
+    <div class="safety-item"><span class="check">&#10003;</span> OWASP ZAP: NOT installed/run</div>
+    <div class="safety-item"><span class="check">&#10003;</span> ReDoS payload executed: NO</div>
+    <div class="safety-item"><span class="check">&#10003;</span> Git history rewritten: NO</div>
+    <div class="safety-item"><span class="check">&#10003;</span> Branch checked out: NO change</div>
+  </div>
+</div>
+
+<h2>V6 — Unauthenticated Exposure of Student Personal Information</h2>
+<table>
+  <tr><th>File</th><th>Type</th><th>Status</th><th>What It Proves</th><th>Suitable For</th></tr>
+  <tr>
+    <td><a href="../V6/before/V6_01_original_route_code.html">V6_01_original_route_code.html</a></td>
+    <td><span class="bvbadge bv6">V6</span> Before — Code</td>
+    <td><span class="badge cap">CAPTURED</span></td>
+    <td>Baseline tutoringSessionRouter.js line 22: router.get("/", getAllTutoringSessions) — no authenticateUser. Plus .populate("participants.userId","fullName email") in service layer.</td>
+    <td>Report ✓ Viva ✓</td>
+  </tr>
+  <tr>
+    <td><a href="../V6/before/V6_02_unauthenticated_student_data.html">V6_02_unauthenticated_student_data.html</a></td>
+    <td><span class="bvbadge bv6">V6</span> Before — API Test</td>
+    <td><span class="badge cap">CAPTURED (fake data)</span></td>
+    <td>Simulated unauthenticated GET returns HTTP 200 with participants[].email visible. Fake student data only (student1@example.test).</td>
+    <td>Report ✓ Viva ✓</td>
+  </tr>
+  <tr>
+    <td><a href="../V6/after/V6_03_fixed_auth_code.html">V6_03_fixed_auth_code.html</a></td>
+    <td><span class="bvbadge bv6">V6</span> After — Code</td>
+    <td><span class="badge pend">VERIFIED — fix committed</span></td>
+    <td>Proposed diff: add authenticateUser to GET / and remove .populate("participants.userId") from service.</td>
+    <td>Report ✓ (after commit)</td>
+  </tr>
+  <tr>
+    <td><a href="../V6/after/V6_04_unauthenticated_401_or_safe_response.html">V6_04_unauthenticated_401_or_safe_response.html</a></td>
+    <td><span class="bvbadge bv6">V6</span> After — API Test</td>
+    <td><span class="badge pend">VERIFIED</span></td>
+    <td>Expected: unauthenticated GET returns 401. Invalid token returns 401.</td>
+    <td>Report ✓ (after commit)</td>
+  </tr>
+  <tr>
+    <td><a href="../V6/after/V6_05_authorized_filtered_response.html">V6_05_authorized_filtered_response.html</a></td>
+    <td><span class="bvbadge bv6">V6</span> After — API Test</td>
+    <td><span class="badge pend">VERIFIED</span></td>
+    <td>Expected: authenticated GET returns 200 with no participants.email field.</td>
+    <td>Report ✓ (after commit)</td>
+  </tr>
+</table>
+
+<h2>V7 — Missing Authentication on Email and Google Calendar Endpoints</h2>
+<table>
+  <tr><th>File</th><th>Type</th><th>Status</th><th>What It Proves</th><th>Suitable For</th></tr>
+  <tr>
+    <td><a href="../V7/before/V7_01_original_calendar_route.html">V7_01_original_calendar_route.html</a></td>
+    <td><span class="bvbadge bv7">V7</span> Before — Code</td>
+    <td><span class="badge cap">CAPTURED</span></td>
+    <td>Baseline googleCalenderRouter.js: all 4 routes (auth/callback/events/status) have no protect or authenticateUser. Callback contains res.json({tokens}) — raw OAuth tokens in response.</td>
+    <td>Report ✓ Viva ✓</td>
+  </tr>
+  <tr>
+    <td><a href="../V7/before/V7_02_original_email_route.html">V7_02_original_email_route.html</a></td>
+    <td><span class="bvbadge bv7">V7</span> Before — Code</td>
+    <td><span class="badge cap">CAPTURED</span></td>
+    <td>Baseline emailRoutes.js and feedbackEmailRoutes.js: router.get("/test-email", sendTestEmail) and router.post("/feedback-notify", sendFeedbackNotification) — no middleware.</td>
+    <td>Report ✓ Viva ✓</td>
+  </tr>
+  <tr>
+    <td><a href="../V7/before/V7_03_unauthenticated_mock_request.html">V7_03_unauthenticated_mock_request.html</a></td>
+    <td><span class="bvbadge bv7">V7</span> Before — API (Mocked)</td>
+    <td><span class="badge cap">CAPTURED (mocked)</span></td>
+    <td>Mocked test shows unauthenticated POST accepted without 401. Calendar fails at Google API layer (not middleware). Email route processes request. Labeled as MOCKED TEST SERVICE.</td>
+    <td>Report ✓</td>
+  </tr>
+  <tr>
+    <td><a href="../V7/after/V7_04_fixed_auth_role_code.html">V7_04_fixed_auth_role_code.html</a></td>
+    <td><span class="bvbadge bv7">V7</span> After — Code</td>
+    <td><span class="badge pend">VERIFIED</span></td>
+    <td>Proposed diff: add protect + authorizePermissions to all 4 calendar routes and 2 email routes. Remove tokens from callback response.</td>
+    <td>Report ✓ (after commit)</td>
+  </tr>
+  <tr>
+    <td><a href="../V7/after/V7_05_06_07_auth_test_results.html">V7_05_06_07_auth_test_results.html</a></td>
+    <td><span class="bvbadge bv7">V7</span> After — API Tests</td>
+    <td><span class="badge pend">VERIFIED</span></td>
+    <td>Expected: 401 no token, 401 invalid token, 403 wrong role, 201/mocked success for admin, 400 invalid body.</td>
+    <td>Report ✓ (after commit)</td>
+  </tr>
+</table>
+
+<h2>V8 — Exposed OAuth Tokens and Hard-Coded Secrets</h2>
+<table>
+  <tr><th>File</th><th>Type</th><th>Status</th><th>What It Proves</th><th>Suitable For</th></tr>
+  <tr>
+    <td><a href="../V8/before-redacted/V8_01_token_file_tracked_redacted.html">V8_01_token_file_tracked_redacted.html</a></td>
+    <td><span class="bvbadge bv8">V8</span> Before — Git</td>
+    <td><span class="badge cap">CAPTURED — REDACTED</span></td>
+    <td>git log confirms google-tokens.json committed in 23faaa1, deleted in 0e4313a. JSON structure shown with keys only — all values REDACTED. No .gitignore in baseline tree.</td>
+    <td>Report ✓ Viva ✓</td>
+  </tr>
+  <tr>
+    <td><a href="../V8/before-redacted/V8_02_hardcoded_configuration_redacted.html">V8_02_hardcoded_configuration_redacted.html</a></td>
+    <td><span class="bvbadge bv8">V8</span> Before — Code</td>
+    <td><span class="badge cap">CAPTURED — REDACTED</span></td>
+    <td>Baseline server.js final lines: console.log("CLIENT ID:", process.env.GOOGLE_CLIENT_ID) — raw value logged. REDACTED in evidence.</td>
+    <td>Report ✓ Viva ✓</td>
+  </tr>
+  <tr>
+    <td><a href="../V8/after/V8_03_gitignore_rules.html">V8_03_gitignore_rules.html</a></td>
+    <td><span class="bvbadge bv8">V8</span> After — Commit</td>
+    <td><span class="badge cap">CAPTURED — Commit ebf9ffb</span></td>
+    <td>Actual .gitignore content: 27 lines excluding .env, *.jtl, google-tokens.json, node_modules. git ls-files confirms tracked. git ls-files backend/.env returns empty.</td>
+    <td>Report ✓ Viva ✓</td>
+  </tr>
+  <tr>
+    <td><a href="../V8/after/V8_04_placeholder_env_example.html">V8_04_placeholder_env_example.html</a></td>
+    <td><span class="bvbadge bv8">V8</span> After — Commit</td>
+    <td><span class="badge cap">CAPTURED — Commit ebf9ffb</span></td>
+    <td>Actual .env.example content: 30 lines, all values are safe placeholders. GOOGLE_REFRESH_TOKEN=your_google_refresh_token. Confirmed tracked by Git.</td>
+    <td>Report ✓ Viva ✓</td>
+  </tr>
+  <tr>
+    <td><a href="../V8/after/V8_05_secure_environment_configuration.html">V8_05_secure_environment_configuration.html</a></td>
+    <td><span class="bvbadge bv8">V8</span> After — Code</td>
+    <td><span class="badge cap">CAPTURED — Commit 0e4313a</span></td>
+    <td>Actual server.js diff: removed console.log("CLIENT ID:"), added boolean status object. jwtSecretConfigured: true/false only — no values logged.</td>
+    <td>Report ✓ Viva ✓</td>
+  </tr>
+  <tr>
+    <td><a href="../V8/after/V8_06_token_file_not_currently_tracked.html">V8_06_token_file_not_currently_tracked.html</a></td>
+    <td><span class="bvbadge bv8">V8</span> After — Git</td>
+    <td><span class="badge cap">CAPTURED — Commit 0e4313a</span></td>
+    <td>git ls-files returns empty for google-tokens.json. Test-Path = False. git log --all shows deletion in 0e4313a. Limitation documented: historical commit 23faaa1 still contains file.</td>
+    <td>Report ✓ Viva ✓</td>
+  </tr>
+  <tr>
+    <td><a href="../V8/after/V8_07_gitleaks_redacted_result.html">V8_07_gitleaks_redacted_result.html</a></td>
+    <td><span class="bvbadge bv8">V8</span> After — Scan</td>
+    <td><span class="badge nc">CAPTURED — Gitleaks not installed</span></td>
+    <td>Placeholder showing expected redacted output. Install gitleaks and re-run: gitleaks detect --source=. All values must be blurred before inclusion in report.</td>
+    <td>Report ✓ (after scan)</td>
+  </tr>
+</table>
+
+<h2>V14 — User-Controlled Regex Injection with Potential ReDoS</h2>
+<table>
+  <tr><th>File</th><th>Type</th><th>Status</th><th>What It Proves</th><th>Suitable For</th></tr>
+  <tr>
+    <td><a href="../V14/before/V14_01_original_unsafe_regex.html">V14_01_original_unsafe_regex.html</a></td>
+    <td><span class="bvbadge bv14">V14</span> Before — Code</td>
+    <td><span class="badge cap">CAPTURED</span></td>
+    <td>Baseline tutoringSessionUtils.js line 12: filter.subject = { $regex: query.subject } — raw, unescaped. escapeRegex() helper defined lines 3-5 and correctly used for grade (line 19) but NOT for subject. Attack flow diagram included.</td>
+    <td>Report ✓ Viva ✓</td>
+  </tr>
+  <tr>
+    <td><a href="../V14/before/V14_02_harmless_special_character_result.html">V14_02_harmless_special_character_result.html</a></td>
+    <td><span class="bvbadge bv14">V14</span> Before — API Test</td>
+    <td><span class="badge cap">CAPTURED (safe test)</span></td>
+    <td>Safe tests: ? subject=^ (caret treated as anchor, matches all — unintended), subject=C++ (++ treated as quantifier, not literal). No catastrophic backtracking pattern tested.</td>
+    <td>Report ✓ Viva ✓</td>
+  </tr>
+  <tr>
+    <td><a href="../V14/after/V14_03_06_fixed_code_and_tests.html">V14_03_06_fixed_code_and_tests.html</a></td>
+    <td><span class="bvbadge bv14">V14</span> After — Code + Tests</td>
+    <td><span class="badge pend">VERIFIED — fix committed</span></td>
+    <td>Proposed diff: wrap query.subject with escapeRegex() + add length guard (>100 → error). Expected tests: normal search works, case-insensitive preserved, C++ treated as literal, long input rejected with 400.</td>
+    <td>Report ✓ (after commit)</td>
+  </tr>
+</table>
+
+<h2>Git Evidence</h2>
+<table>
+  <tr><th>File</th><th>Status</th><th>What It Proves</th></tr>
+  <tr>
+    <td><a href="../git/GIT_01_member3_branch.html">GIT_01_member3_branch.html</a></td>
+    <td><span class="badge cap">CAPTURED</span></td>
+    <td>Current branch: security-fixes-IT23405240-ALAHAKOON-PB. Commit log shows baseline 23faaa1, then 2 V8 commits by Pramodya Alahakoon. Git author identity confirmed (email partially redacted).</td>
+  </tr>
+  <tr>
+    <td><a href="../git/GIT_02_modified_remote.html">GIT_02_modified_remote.html</a></td>
+    <td><span class="badge cap">CAPTURED</span></td>
+    <td>Remote origin: github.com/ChiranLK/ChiranLK-Quality-Education-Secure-SE4030.git. Branch up to date with origin.</td>
+  </tr>
+  <tr>
+    <td><a href="../git/GIT_03_changed_files_by_vulnerability.html">GIT_03_changed_files_by_vulnerability.html</a></td>
+    <td><span class="badge cap">CAPTURED</span></td>
+    <td>Actual git diff --stat 23faaa1..HEAD showing 14 files changed, 104 insertions, 188 deletions. Table maps each file to its vulnerability. .env, node_modules, google-tokens.json confirmed NOT tracked.</td>
+  </tr>
+  <tr>
+    <td><a href="../git/GIT_04_proposed_commit_history.html">GIT_04_proposed_commit_history.html</a></td>
+    <td><span class="badge cap">CAPTURED</span></td>
+    <td>6-commit plan: chore(done), fix(V8)(done), fix(V6)(pending), fix(V7)(pending), fix(V14)(pending), docs(pending). Each commit lists exact files to include.</td>
+  </tr>
+</table>
+
+<h2>Summary Table — Per Requirement</h2>
+<table>
+  <tr><th>ID</th><th>Before Code</th><th>Before Test</th><th>After Code</th><th>After Test</th><th>Git Evidence</th><th>Complete?</th></tr>
+  <tr>
+    <td><span class="bvbadge bv6">V6</span></td>
+    <td><span class="badge cap">✓ V6_01</span></td>
+    <td><span class="badge cap">✓ V6_02</span></td>
+    <td><span class="badge pend">⏳ V6_03</span></td>
+    <td><span class="badge pend">⏳ V6_04/05</span></td>
+    <td><span class="badge cap">✓ GIT_03/04</span></td>
+    <td>PARTIAL</td>
+  </tr>
+  <tr>
+    <td><span class="bvbadge bv7">V7</span></td>
+    <td><span class="badge cap">✓ V7_01/02</span></td>
+    <td><span class="badge cap">✓ V7_03</span></td>
+    <td><span class="badge pend">⏳ V7_04</span></td>
+    <td><span class="badge pend">⏳ V7_05-07</span></td>
+    <td><span class="badge cap">✓ GIT_03/04</span></td>
+    <td>PARTIAL</td>
+  </tr>
+  <tr>
+    <td><span class="bvbadge bv8">V8</span></td>
+    <td><span class="badge cap">✓ V8_01/02</span></td>
+    <td><span class="badge cap">✓ (git log)</span></td>
+    <td><span class="badge cap">✓ V8_03-06</span></td>
+    <td><span class="badge cap">✓ V8_05/06</span></td>
+    <td><span class="badge cap">✓ GIT_01-04</span></td>
+    <td>MOSTLY COMPLETE*</td>
+  </tr>
+  <tr>
+    <td><span class="bvbadge bv14">V14</span></td>
+    <td><span class="badge cap">✓ V14_01</span></td>
+    <td><span class="badge cap">✓ V14_02</span></td>
+    <td><span class="badge pend">⏳ V14_03</span></td>
+    <td><span class="badge pend">⏳ V14_04-06</span></td>
+    <td><span class="badge cap">✓ GIT_03/04</span></td>
+    <td>PARTIAL</td>
+  </tr>
+</table>
+<p style="font-size:12px;color:#8b949e;margin-bottom:20px">*V8 missing: Gitleaks scan (tool not installed) and token revocation confirmation screenshot (manual action required).</p>
+
+</div>
+<div class="footer">
+  SE4030 Member 3 Evidence Index | Pramodya Alahakoon IT23405240 | Branch: security-fixes-IT23405240-ALAHAKOON-PB |
+  Evidence folder: C:\Users\USER\Documents\Git2026\SE4030-Member3-Evidence\ |
+  Generated: 2026-09-26T09:56:51.578Z | No files modified | No commits | No secrets displayed
+</div>
+</body>
+</html>

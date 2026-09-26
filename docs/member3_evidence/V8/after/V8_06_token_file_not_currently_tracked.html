@@ -1,0 +1,83 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>V8 After — Token File Not Currently Tracked</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}body{font-family:"Segoe UI",sans-serif;background:#0d1117;color:#c9d1d9;padding:24px}
+  .header{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px 20px;margin-bottom:20px}
+  .bv{display:inline-block;background:#da3633;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;margin-right:6px}
+  .ba{display:inline-block;background:#238636;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;margin-right:6px}
+  .bc{display:inline-block;background:#1f6feb;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px}
+  h1{font-size:17px;color:#e6edf3;margin-top:10px}.meta{font-size:12px;color:#8b949e;margin-top:6px}
+  .code-block{background:#161b22;border:1px solid #30363d;border-radius:6px;overflow:hidden;margin-bottom:16px}
+  .code-header{background:#21262d;padding:8px 14px;font-size:12px;color:#8b949e;display:flex;justify-content:space-between;border-bottom:1px solid #30363d}
+  pre{padding:14px;overflow-x:auto;font-size:13px;line-height:1.7;font-family:"Cascadia Code","Consolas",monospace}
+  .confirm-box{background:#0d2d1e;border:1px solid #2ea043;border-radius:6px;padding:14px 18px;margin:12px 0}
+  .confirm-box h4{color:#2ea043;font-size:13px;margin-bottom:8px}
+  .confirm-box ul{padding-left:18px;font-size:13px;color:#c9d1d9;line-height:1.8}
+  .warning-box{background:#2d1117;border:1px solid #9e6a03;border-radius:6px;padding:14px 18px;margin:12px 0}
+  .warning-box h4{color:#d29922;font-size:13px;margin-bottom:8px}
+  .warning-box p{font-size:13px;color:#c9d1d9;line-height:1.6}
+  .footer{font-size:11px;color:#484f58;margin-top:24px;border-top:1px solid #21262d;padding-top:12px}
+</style>
+</head>
+<body>
+<div class="header">
+  <span class="bv">V8</span><span class="ba">AFTER FIX</span><span class="bc">COMMITTED — 0e4313a</span>
+  <h1>V8 — Token File Removed from Working Tree and Current Tracking</h1>
+  <div class="meta">Evidence type: Read-only git commands | 2026-09-26 | All token values REDACTED</div>
+</div>
+
+<div class="code-block">
+  <div class="code-header"><span>git ls-files backend/google-tokens.json</span><span>Current branch tracking status</span></div>
+  <pre>$ git ls-files backend/google-tokens.json
+<span style="color:#2ea043">(empty output)</span>
+Interpretation: File is NOT tracked in current branch HEAD (0e4313a)
+The deletion was committed in 0e4313a — file removed from working tree.</pre>
+</div>
+
+<div class="code-block">
+  <div class="code-header"><span>git log --all -- backend/google-tokens.json</span><span>Full Git history for this file</span></div>
+  <pre>commit 0e4313add0ff99918dabec69423dcbe3e7da54da
+Author: Pramodya Alahakoon &lt;p.****@gmail.com&gt;
+Date:   Fri Sep 25 23:06:49 2026 +0530
+    fix(V8): remove hard-coded secrets and secure environment configuration
+    Action: D (deleted) — backend/google-tokens.json
+
+commit 23faaa1eed6c88a90c8e8daf301d5e72b24966bb
+Author: Chiran Samiru Serasinghe &lt;it23401976@my.sliit.lk&gt;
+Date:   Thu Sep 24 16:01:58 2026 +0530
+    project core
+    Action: A (added) — backend/google-tokens.json [with OAuth tokens]</pre>
+</div>
+
+<div class="code-block">
+  <div class="code-header"><span>Test-Path backend\google-tokens.json</span><span>Working tree check</span></div>
+  <pre>$ Test-Path backend\google-tokens.json
+<span style="color:#2ea043">False</span>     ← File does NOT exist in current working directory</pre>
+</div>
+
+<div class="warning-box">
+  <h4>&#9888; Important Limitation — History Retention</h4>
+  <p>The token file <strong>still exists in Git history</strong> at commit <code>23faaa1</code>.
+  Anyone who clones the repository can access it via <code>git show 23faaa1:backend/google-tokens.json</code>.
+  Complete removal requires <code>git filter-repo</code> history rewriting, which was not performed to preserve
+  the baseline evidence required for this assignment. The active risk is eliminated because:
+  (1) the tokens have been revoked in Google Cloud Console, and
+  (2) the file is now gitignored, preventing re-commitment.</p>
+</div>
+
+<div class="confirm-box">
+  <h4>&#10003; What This Evidence Proves</h4>
+  <ul>
+    <li>google-tokens.json is NOT present in the current working tree (Test-Path = False)</li>
+    <li>File is NOT tracked by Git in the current HEAD (git ls-files returns empty)</li>
+    <li>Deletion was committed in 0e4313a by Pramodya Alahakoon</li>
+    <li>google-tokens.json pattern in .gitignore prevents re-committing the file</li>
+    <li>Limitation documented: historical commit 23faaa1 still contains the file — tokens must be revoked</li>
+  </ul>
+</div>
+<div class="footer">SE4030 Member 3 Evidence | CAPTURED | Pramodya Alahakoon IT23405240 | 2026-09-26 | No token values displayed</div>
+</body>
+</html>

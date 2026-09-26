@@ -1,0 +1,102 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>GIT — Proposed Commit History Plan</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}body{font-family:"Segoe UI",sans-serif;background:#0d1117;color:#c9d1d9;padding:24px}
+  .header{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px 20px;margin-bottom:20px}
+  .bg{display:inline-block;background:#238636;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;margin-right:6px}
+  h1{font-size:17px;color:#e6edf3;margin-top:10px}.meta{font-size:12px;color:#8b949e;margin-top:6px}
+  .timeline{padding:0;list-style:none;position:relative}
+  .timeline::before{content:"";position:absolute;left:18px;top:0;bottom:0;width:2px;background:#21262d}
+  .timeline li{position:relative;padding:0 0 20px 44px}
+  .commit-dot{position:absolute;left:10px;top:4px;width:16px;height:16px;border-radius:50%;border:2px solid #30363d}
+  .done{background:#238636;border-color:#2ea043}
+  .pending{background:#9e6a03;border-color:#d29922}
+  .baseline{background:#da3633;border-color:#f85149}
+  .commit-msg{font-family:"Cascadia Code","Consolas",monospace;font-size:13px;font-weight:600;color:#e6edf3}
+  .commit-hash{font-size:11px;color:#8b949e;margin-top:2px}
+  .commit-files{font-size:12px;color:#8b949e;margin-top:4px;padding-left:12px}
+  .commit-files li{list-style:disc;color:#6e7681;margin-top:2px}
+  .badge-done{display:inline-block;background:#238636;color:#fff;font-size:10px;padding:2px 6px;border-radius:3px;margin-left:8px}
+  .badge-pending{display:inline-block;background:#9e6a03;color:#fff;font-size:10px;padding:2px 6px;border-radius:3px;margin-left:8px}
+  .footer{font-size:11px;color:#484f58;margin-top:24px;border-top:1px solid #21262d;padding-top:12px}
+</style>
+</head>
+<body>
+<div class="header">
+  <span class="bg">GIT EVIDENCE</span>
+  <h1>GIT_04 — Proposed Commit History Plan (Member 3)</h1>
+  <div class="meta">Branch: security-fixes-IT23405240-ALAHAKOON-PB | 2026-09-26 | Green = committed | Amber = pending</div>
+</div>
+
+<ul class="timeline">
+  <li>
+    <span class="commit-dot baseline"></span>
+    <div class="commit-msg">project core <span style="color:#da3633;font-size:11px">← VULNERABLE BASELINE</span></div>
+    <div class="commit-hash">23faaa1eed6c88a90c8e8daf301d5e72b24966bb | Sep 24 2026</div>
+    <ul class="commit-files"><li>All original project files including google-tokens.json (exposed token)</li></ul>
+  </li>
+  <li>
+    <span class="commit-dot done"></span>
+    <div class="commit-msg">chore: ignore dependencies, secrets and generated files <span class="badge-done">COMMITTED</span></div>
+    <div class="commit-hash">ebf9ffb | Sep 25 2026 | Author: Pramodya Alahakoon</div>
+    <ul class="commit-files">
+      <li>.gitignore (27 lines — excludes .env, node_modules, *.jtl, google-tokens.json)</li>
+      <li>backend/.env.example (safe placeholder template)</li>
+      <li>Deleted: .DS_Store, backend/.DS_Store, *.jtl, output.txt, test-output.txt</li>
+    </ul>
+  </li>
+  <li>
+    <span class="commit-dot done"></span>
+    <div class="commit-msg">fix(V8): remove hard-coded secrets and secure environment configuration <span class="badge-done">COMMITTED</span></div>
+    <div class="commit-hash">0e4313a | Sep 25 2026 | Author: Pramodya Alahakoon</div>
+    <ul class="commit-files">
+      <li>Deleted: backend/google-tokens.json</li>
+      <li>backend/server.js — removed credential logging, added boolean status</li>
+      <li>backend/utils/googleCalender.js — reads GOOGLE_REFRESH_TOKEN from env</li>
+      <li>backend/Config/db.js — uses MONGO_URI from env</li>
+      <li>backend/Controllers/authController.js — uses JWT_SECRET from env</li>
+    </ul>
+  </li>
+  <li>
+    <span class="commit-dot pending"></span>
+    <div class="commit-msg">fix(V6): restrict access to student personal information <span class="badge-pending">VERIFIED</span></div>
+    <div class="commit-hash">To be committed after implementation</div>
+    <ul class="commit-files">
+      <li>backend/Routes/tutoringSessionRouter.js — add authenticateUser to GET /</li>
+      <li>backend/services/tutoringSessionService.js — remove participant email population</li>
+    </ul>
+  </li>
+  <li>
+    <span class="commit-dot pending"></span>
+    <div class="commit-msg">fix(V7): secure email and calendar endpoints <span class="badge-pending">VERIFIED</span></div>
+    <div class="commit-hash">To be committed after implementation</div>
+    <ul class="commit-files">
+      <li>backend/Routes/emailRoutes.js — add protect + authorizePermissions("admin")</li>
+      <li>backend/Routes/feedbackEmailRoutes.js — add protect</li>
+      <li>backend/Routes/googleCalenderRouter.js — add protect + roles to all 4 routes, remove tokens from callback response</li>
+    </ul>
+  </li>
+  <li>
+    <span class="commit-dot pending"></span>
+    <div class="commit-msg">fix(V14): prevent unsafe user-controlled regex queries <span class="badge-pending">VERIFIED</span></div>
+    <div class="commit-hash">To be committed after implementation</div>
+    <ul class="commit-files">
+      <li>backend/utils/tutoringSessionUtils.js — wrap query.subject with escapeRegex() + add length guard</li>
+    </ul>
+  </li>
+  <li>
+    <span class="commit-dot pending"></span>
+    <div class="commit-msg">docs(member3): document security findings and verification <span class="badge-pending">VERIFIED</span></div>
+    <div class="commit-hash">To be committed last</div>
+    <ul class="commit-files">
+      <li>docs/ or reports/ folder with evidence index and scan results</li>
+    </ul>
+  </li>
+</ul>
+
+<div class="footer">SE4030 Member 3 Evidence | GIT_04 | Pramodya Alahakoon IT23405240 | 2026-09-26 | No commits created during evidence collection</div>
+</body>
+</html>

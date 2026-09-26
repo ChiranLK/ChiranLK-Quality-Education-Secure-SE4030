@@ -1,0 +1,66 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>GIT — Member 3 Branch Information</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}body{font-family:"Segoe UI",sans-serif;background:#0d1117;color:#c9d1d9;padding:24px}
+  .header{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px 20px;margin-bottom:20px}
+  .bg{display:inline-block;background:#238636;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;margin-right:6px}
+  .bl{display:inline-block;background:#1f6feb;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px}
+  h1{font-size:17px;color:#e6edf3;margin-top:10px}.meta{font-size:12px;color:#8b949e;margin-top:6px}
+  .code-block{background:#161b22;border:1px solid #30363d;border-radius:6px;overflow:hidden;margin-bottom:16px}
+  .code-header{background:#21262d;padding:8px 14px;font-size:12px;color:#8b949e;display:flex;justify-content:space-between;border-bottom:1px solid #30363d}
+  pre{padding:14px;overflow-x:auto;font-size:13px;line-height:1.7;font-family:"Cascadia Code","Consolas",monospace}
+  .highlight{color:#2ea043;font-weight:700}
+  .c{color:#8b949e}
+  .info-box{background:#0d1f3c;border:1px solid #1f6feb;border-radius:6px;padding:14px 18px;margin:12px 0}
+  .info-box h4{color:#58a6ff;font-size:13px;margin-bottom:8px}
+  .info-box ul{padding-left:18px;font-size:13px;color:#c9d1d9;line-height:1.8}
+  .footer{font-size:11px;color:#484f58;margin-top:24px;border-top:1px solid #21262d;padding-top:12px}
+</style>
+</head>
+<body>
+<div class="header">
+  <span class="bg">GIT EVIDENCE</span><span class="bl">MEMBER 3</span>
+  <h1>GIT_01 — Member 3 Branch and Commit Information</h1>
+  <div class="meta">Evidence type: Read-only git inspection | 2026-09-26T09:56:51.569Z | No commits created during collection</div>
+</div>
+
+<div class="code-block">
+  <div class="code-header"><span>git branch --show-current</span><span>Current branch</span></div>
+  <pre><span class="highlight">security-fixes-IT23405240-ALAHAKOON-PB</span>
+
+Branch format interpretation:
+  security-fixes  →  Security assignment work
+  IT23405240      →  Student ID
+  ALAHAKOON-PB    →  Surname identifier</pre>
+</div>
+
+<div class="code-block">
+  <div class="code-header"><span>git log --oneline (all 4 commits in chronological order)</span><span>Commit history</span></div>
+  <pre>411b383  Initial commit
+23faaa1  project core   ← VULNERABLE BASELINE (imported from original repo)
+ebf9ffb  chore: ignore dependencies, secrets and generated files   ← V8 Part 1
+0e4313a  fix(V8): remove hard-coded secrets and secure environment configuration   ← V8 Part 2</pre>
+</div>
+
+<div class="code-block">
+  <div class="code-header"><span>git config user.name / user.email</span><span>Author identity (email partially redacted)</span></div>
+  <pre>user.name:  Pramodya Alahakoon
+user.email: p.***@gmail.com   (partially redacted for evidence)</pre>
+</div>
+
+<div class="info-box">
+  <h4>&#128204; Branch Evidence Summary</h4>
+  <ul>
+    <li><strong>Branch name:</strong> security-fixes-IT23405240-ALAHAKOON-PB — confirms Member 3 ownership</li>
+    <li><strong>Vulnerable baseline:</strong> 23faaa1eed6c88a90c8e8daf301d5e72b24966bb — original project core</li>
+    <li><strong>V8 committed:</strong> 2 commits (ebf9ffb + 0e4313a) by Pramodya Alahakoon</li>
+    <li><strong>Pending commits:</strong> fix(V6), fix(V7), fix(V14), docs(member3) — not yet implemented</li>
+    <li><strong>Working tree clean:</strong> git status = "nothing to commit, working tree clean"</li>
+  </ul>
+</div>
+<div class="footer">SE4030 Member 3 Evidence | GIT_01 | Pramodya Alahakoon IT23405240 | 2026-09-26 | No commits created | No push</div>
+</body>
+</html>

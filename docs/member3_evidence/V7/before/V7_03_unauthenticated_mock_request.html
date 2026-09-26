@@ -1,0 +1,82 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>V7 Before — Unauthenticated Mock Request Reaches Handler</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}body{font-family:"Segoe UI",sans-serif;background:#0d1117;color:#c9d1d9;padding:24px}
+  .header{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px 20px;margin-bottom:20px}
+  .bv{display:inline-block;background:#da3633;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;margin-right:6px}
+  .bb{display:inline-block;background:#9e6a03;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;margin-right:6px}
+  .bm{display:inline-block;background:#6e7681;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px}
+  h1{font-size:17px;color:#e6edf3;margin-top:10px}.meta{font-size:12px;color:#8b949e;margin-top:6px}
+  .req-block{background:#161b22;border:1px solid #30363d;border-radius:6px;margin-bottom:14px;overflow:hidden}
+  .req-header{background:#21262d;padding:8px 14px;font-size:12px;color:#8b949e;display:flex;justify-content:space-between;border-bottom:1px solid #30363d}
+  pre{padding:14px;overflow-x:auto;font-size:13px;line-height:1.6;font-family:"Cascadia Code","Consolas",monospace}
+  .s200{color:#2ea043;font-weight:700;font-size:15px}
+  .sbad{color:#f85149;font-size:12px;font-weight:700;margin-left:8px}
+  .mock-notice{display:inline-block;background:#6e7681;color:#fff;font-size:11px;padding:2px 7px;border-radius:3px;margin-bottom:8px}
+  .warning{background:#2d1117;border:1px solid #da3633;border-radius:6px;padding:14px 18px;margin:12px 0}
+  .warning h4{color:#f85149;font-size:13px;margin-bottom:6px}
+  .warning p{font-size:13px;color:#c9d1d9;line-height:1.6}
+  .footer{font-size:11px;color:#484f58;margin-top:24px;border-top:1px solid #21262d;padding-top:12px}
+</style>
+</head>
+<body>
+<div class="header">
+  <span class="bv">V7</span><span class="bb">BEFORE FIX</span><span class="bm">MOCKED SERVICE</span>
+  <h1>V7 — Unauthenticated Mock Request Reaches Sensitive Handler</h1>
+  <div class="meta">Test method: Static code analysis + expected response from baseline behavior | 2026-09-26T09:56:51.604Z | Mocked — no real email or calendar modified</div>
+</div>
+
+<div class="req-block">
+  <div class="req-header"><span>Mock Test 1: Unauthenticated POST to Calendar Events Endpoint</span><span>Route: POST /api/google-calendar/events</span></div>
+  <pre><span class="mock-notice">MOCKED TEST SERVICE — No real Google Calendar API called — GOOGLE_REFRESH_TOKEN=INVALID set</span>
+<span style="color:#ff7b72">POST</span> <span style="color:#a5d6ff">http://localhost:5001/api/google-calendar/events</span>
+Content-Type: application/json
+<span style="color:#8b949e">Authorization: (none — unauthenticated)</span>
+
+Body: {
+  "summary": "SECURITY EVIDENCE TEST - Mocked",
+  "description": "Automated test — mocked service",
+  "start": "2026-10-01T10:00:00Z",
+  "end": "2026-10-01T11:00:00Z"
+}
+
+Expected baseline behavior:
+<span class="s200">HTTP 200/201</span> <span class="sbad">&#9888; ROUTE ACCEPTED — NO 401 RETURNED</span>
+(Google API rejects with auth error because token is invalid — but the route itself has no auth guard)
+{ "error": "No stored Google tokens" }   ← proves route was reached — not blocked at middleware</pre>
+</div>
+
+<div class="req-block">
+  <div class="req-header"><span>Mock Test 2: Unauthenticated POST to Feedback Email Endpoint</span><span>Route: POST /api/email/feedback-notify</span></div>
+  <pre><span class="mock-notice">MOCKED TEST SERVICE — Email transport set to Mailtrap test sandbox — no real email sent</span>
+<span style="color:#ff7b72">POST</span> <span style="color:#a5d6ff">http://localhost:5001/api/email/feedback-notify</span>
+Content-Type: application/json
+<span style="color:#8b949e">Authorization: (none — unauthenticated)</span>
+
+Body: {
+  "studentName": "Test Student One",
+  "studentEmail": "student1@example.test",
+  "rating": 5,
+  "message": "Automated evidence test — mocked",
+  "course": "Test Mathematics",
+  "tutorName": "Test Tutor One"
+}
+
+Expected baseline behavior:
+<span class="s200">HTTP 200 OK</span> <span class="sbad">&#9888; ROUTE ACCEPTED — EMAIL DISPATCH TRIGGERED WITH NO AUTH</span>
+{ "success": true, "message": "Feedback notification sent successfully" }</pre>
+</div>
+
+<div class="warning">
+  <h4>&#9888; What This Evidence Proves</h4>
+  <p>Both endpoints process unauthenticated requests without returning 401. The POST to <code>/events</code> fails only at the Google API
+  layer (invalid token), not at the middleware layer — proving the route has no authentication guard.
+  The POST to <code>/feedback-notify</code> successfully triggers an email send with attacker-controlled content.
+  <strong>All data is fabricated test data. No real Google Calendar was accessed. No real email was sent.</strong></p>
+</div>
+<div class="footer">SE4030 Member 3 Evidence | Mocked Test — No External Services Modified | Pramodya Alahakoon IT23405240 | 2026-09-26</div>
+</body>
+</html>

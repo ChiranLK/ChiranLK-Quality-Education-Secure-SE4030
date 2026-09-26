@@ -1,0 +1,82 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>V8 After — .env.example Safe Placeholder Template</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}body{font-family:"Segoe UI",sans-serif;background:#0d1117;color:#c9d1d9;padding:24px}
+  .header{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px 20px;margin-bottom:20px}
+  .bv{display:inline-block;background:#da3633;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;margin-right:6px}
+  .ba{display:inline-block;background:#238636;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;margin-right:6px}
+  .bc{display:inline-block;background:#1f6feb;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px}
+  h1{font-size:17px;color:#e6edf3;margin-top:10px}.meta{font-size:12px;color:#8b949e;margin-top:6px}
+  .code-block{background:#161b22;border:1px solid #30363d;border-radius:6px;overflow:hidden;margin-bottom:16px}
+  .code-header{background:#21262d;padding:8px 14px;font-size:12px;color:#8b949e;display:flex;justify-content:space-between;border-bottom:1px solid #30363d}
+  pre{padding:14px;overflow-x:auto;font-size:13px;line-height:1.7;font-family:"Cascadia Code","Consolas",monospace}
+  .c{color:#8b949e}.ph{color:#d29922}
+  .confirm-box{background:#0d2d1e;border:1px solid #2ea043;border-radius:6px;padding:14px 18px;margin:12px 0}
+  .confirm-box h4{color:#2ea043;font-size:13px;margin-bottom:8px}
+  .confirm-box ul{padding-left:18px;font-size:13px;color:#c9d1d9;line-height:1.8}
+  .footer{font-size:11px;color:#484f58;margin-top:24px;border-top:1px solid #21262d;padding-top:12px}
+</style>
+</head>
+<body>
+<div class="header">
+  <span class="bv">V8</span><span class="ba">AFTER FIX</span><span class="bc">COMMITTED — ebf9ffb</span>
+  <h1>V8 — Fixed: Placeholder .env.example with No Real Credentials</h1>
+  <div class="meta">Evidence type: Actual committed file content | File: backend/.env.example | 2026-09-26</div>
+</div>
+
+<div class="code-block">
+  <div class="code-header"><span>backend/.env.example — actual committed content (commit ebf9ffb)</span><span>All values are safe placeholders — NO real credentials</span></div>
+  <pre>PORT=5000
+MONGO_URI=mongodb://127.0.0.1:27017/quality_education
+JWT_SECRET=<span class="ph">replace_with_a_secure_random_secret</span>
+JWT_EXPIRE_IN=7d
+FRONTEND_URL=http://localhost:5173
+
+CLOUDINARY_CLOUD_NAME=<span class="ph">your_cloud_name</span>
+CLOUDINARY_API_KEY=<span class="ph">your_api_key</span>
+CLOUDINARY_API_SECRET=<span class="ph">your_api_secret</span>
+
+<span class="c"># AI Translation (Google Gemini)</span>
+GEMINI_API_KEY=<span class="ph">your_gemini_api_key</span>
+
+<span class="c"># Email Configuration (Nodemailer / Mailtrap / Gmail)</span>
+MAIL_PROVIDER=sandbox
+SANDBOX_MAIL_HOST=sandbox.smtp.mailtrap.io
+SANDBOX_MAIL_PORT=2525
+SANDBOX_MAIL_USER=<span class="ph">your_sandbox_mail_user</span>
+SANDBOX_MAIL_PASS=<span class="ph">your_sandbox_mail_pass</span>
+GMAIL_MAIL_HOST=smtp.gmail.com
+GMAIL_MAIL_PORT=587
+GMAIL_MAIL_USER=<span class="ph">your_gmail_user</span>
+GMAIL_MAIL_PASS=<span class="ph">your_gmail_app_password</span>
+
+<span class="c"># Google OAuth &amp; Calendar Integration</span>
+GOOGLE_CLIENT_ID=<span class="ph">your_google_client_id</span>
+GOOGLE_CLIENT_SECRET=<span class="ph">your_google_client_secret</span>
+GOOGLE_REDIRECT_URI=http://localhost:5000/api/google-oauth/callback
+GOOGLE_REFRESH_TOKEN=<span class="ph">your_google_refresh_token</span>
+GOOGLE_CALENDAR_ID=primary</pre>
+</div>
+
+<div class="code-block">
+  <div class="code-header"><span>git ls-files backend/.env.example</span><span>Confirms template is tracked (safe to commit)</span></div>
+  <pre>$ git ls-files backend/.env.example
+<span style="color:#2ea043">backend/.env.example</span>     ← confirmed tracked in Git</pre>
+</div>
+
+<div class="confirm-box">
+  <h4>&#10003; What This Evidence Proves</h4>
+  <ul>
+    <li>All values are human-readable placeholder strings — no real credential, token, or key present</li>
+    <li>GOOGLE_REFRESH_TOKEN=<span style="color:#d29922">your_google_refresh_token</span> — placeholder only, not the revoked real value</li>
+    <li>JWT_SECRET=<span style="color:#d29922">replace_with_a_secure_random_secret</span> — clearly a placeholder</li>
+    <li>File is correctly tracked by Git (the !.env.example exception in .gitignore allows this)</span></li>
+    <li>New developers can copy this file to .env and fill in real values — without real values ever touching Git</li>
+  </ul>
+</div>
+<div class="footer">SE4030 Member 3 Evidence | CAPTURED — Commit ebf9ffb | Pramodya Alahakoon IT23405240 | 2026-09-26 | No secrets displayed</div>
+</body>
+</html>

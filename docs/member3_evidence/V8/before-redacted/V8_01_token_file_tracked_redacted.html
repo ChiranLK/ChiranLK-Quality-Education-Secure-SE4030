@@ -1,0 +1,92 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>V8 Before — Token File Tracked in Git (Redacted)</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}body{font-family:"Segoe UI",sans-serif;background:#0d1117;color:#c9d1d9;padding:24px}
+  .header{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px 20px;margin-bottom:20px}
+  .bv{display:inline-block;background:#da3633;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;margin-right:6px}
+  .bb{display:inline-block;background:#9e6a03;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;margin-right:6px}
+  .br{display:inline-block;background:#6e7681;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px}
+  h1{font-size:17px;color:#e6edf3;margin-top:10px}.meta{font-size:12px;color:#8b949e;margin-top:6px}
+  .code-block{background:#161b22;border:1px solid #30363d;border-radius:6px;overflow:hidden;margin-bottom:16px}
+  .code-header{background:#21262d;padding:8px 14px;font-size:12px;color:#8b949e;display:flex;justify-content:space-between;border-bottom:1px solid #30363d}
+  pre{padding:14px;overflow-x:auto;font-size:13px;line-height:1.7;font-family:"Cascadia Code","Consolas",monospace}
+  .vl{background:rgba(218,54,51,0.15);border-left:3px solid #da3633;display:block;margin:0 -14px;padding:0 14px}
+  .c{color:#8b949e}.k{color:#ff7b72}.s{color:#a5d6ff}
+  .redact{background:#da3633;color:#da3633;border-radius:2px;padding:0 4px;user-select:none;font-size:12px}
+  .issue-box{background:#2d1117;border:1px solid #da3633;border-radius:6px;padding:14px 18px;margin:12px 0}
+  .issue-box h4{color:#f85149;font-size:13px;margin-bottom:8px}
+  .issue-box ul{padding-left:18px;font-size:13px;color:#c9d1d9;line-height:1.8}
+  .footer{font-size:11px;color:#484f58;margin-top:24px;border-top:1px solid #21262d;padding-top:12px}
+</style>
+</head>
+<body>
+<div class="header">
+  <span class="bv">V8</span><span class="bb">BEFORE FIX</span><span class="br">FULLY REDACTED</span>
+  <h1>V8 — Token File Committed to Git: Proof of Tracking</h1>
+  <div class="meta">Evidence type: Git history inspection — read-only | All token values REDACTED | Commit 23faaa1 | 2026-09-26T09:56:51.615Z</div>
+</div>
+
+<div class="code-block">
+  <div class="code-header"><span>git log --all -- backend/google-tokens.json (read-only)</span><span>Proves file was committed and later deleted</span></div>
+  <pre>commit 0e4313add0ff99918dabec69423dcbe3e7da54da
+Author: Pramodya Alahakoon &lt;p.****@gmail.com&gt;
+Date:   Fri Sep 25 23:06:49 2026 +0530
+
+    fix(V8): remove hard-coded secrets and secure environment configuration
+
+commit 23faaa1eed6c88a90c8e8daf301d5e72b24966bb
+Author: Chiran Samiru Serasinghe &lt;it23401976@my.sliit.lk&gt;
+Date:   Thu Sep 24 16:01:58 2026 +0530
+
+    project core</pre>
+</div>
+
+<div class="code-block">
+  <div class="code-header"><span>backend/google-tokens.json — commit 23faaa1 — STRUCTURE ONLY, ALL VALUES REDACTED</span><span>Secret Type: Google OAuth 2.0 Token</span></div>
+  <pre>{
+<span class="vl">  "access_token":               "<span class="redact">ya29.a0Aa...REDACTED — TOKEN REVOKED</span>",</span>
+<span class="vl">  "refresh_token":              "<span class="redact">1//0gP...REDACTED — TOKEN REVOKED</span>",</span>
+  "scope":                      "https://www.googleapis.com/auth/calendar",
+  "token_type":                 "Bearer",
+  "refresh_token_expires_in":   604799,
+  "expiry_date":                1775687929773
+}
+
+Secret types detected:
+- access_token:  Google OAuth 2.0 Access Token (short-lived, ~1 hour)
+- refresh_token: Google OAuth 2.0 Refresh Token (long-lived — grants PERMANENT calendar access until revoked)
+
+⚠️  Commit hash proves this file existed in public Git history.
+⚠️  All actual values are REDACTED and must NOT appear in any report or screenshot.
+⚠️  The tokens have been revoked (manual action required — see V8 report).</pre>
+</div>
+
+<div class="code-block">
+  <div class="code-header"><span>git ls-tree 23faaa1 backend --name-only</span><span>Baseline root tree — NO .gitignore</span></div>
+  <pre>$ git ls-tree 23faaa1 --name-only
+.DS_Store
+Client
+README.md
+backend
+
+<span class="c">Note: .gitignore is NOT present in the 23faaa1 baseline root tree.
+This means any file staged at that time would be committed — including token files.</span></pre>
+</div>
+
+<div class="issue-box">
+  <h4>&#128204; What This Evidence Proves</h4>
+  <ul>
+    <li><strong>File tracked in Git:</strong> git log confirms google-tokens.json was committed in 23faaa1 and deleted in 0e4313a</li>
+    <li><strong>Secret types:</strong> access_token (short-lived) and refresh_token (long-lived) — both Google OAuth 2.0</li>
+    <li><strong>Impact:</strong> Any person who cloned the repo between Sep 24–25 2026 could use the refresh_token to access the Google Calendar API</li>
+    <li><strong>No .gitignore:</strong> No protection against future accidental secret commits existed in the baseline</li>
+    <li><strong>OWASP A07:2021 | CWE-798 | Severity: Critical</strong></li>
+    <li><strong>All token values REDACTED — tokens must be revoked in Google Cloud Console</strong></li>
+  </ul>
+</div>
+<div class="footer">SE4030 Member 3 Evidence | FULLY REDACTED — No token values displayed | Pramodya Alahakoon IT23405240 | 2026-09-26 | No files modified | No commits</div>
+</body>
+</html>

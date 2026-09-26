@@ -1,0 +1,91 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>V14 Before — Unsafe User-Controlled Regex in tutoringSessionUtils.js</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}body{font-family:"Segoe UI",sans-serif;background:#0d1117;color:#c9d1d9;padding:24px}
+  .header{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px 20px;margin-bottom:20px}
+  .bv{display:inline-block;background:#da3633;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;margin-right:6px}
+  .bb{display:inline-block;background:#9e6a03;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;margin-right:6px}
+  .bl{display:inline-block;background:#388bfd;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px}
+  h1{font-size:17px;color:#e6edf3;margin-top:10px}.meta{font-size:12px;color:#8b949e;margin-top:6px}
+  .code-block{background:#161b22;border:1px solid #30363d;border-radius:6px;overflow:hidden;margin-bottom:16px}
+  .code-header{background:#21262d;padding:8px 14px;font-size:12px;color:#8b949e;display:flex;justify-content:space-between;border-bottom:1px solid #30363d}
+  pre{padding:14px;overflow-x:auto;font-size:13px;line-height:1.7;font-family:"Cascadia Code","Consolas",monospace}
+  .vl{background:rgba(218,54,51,0.15);border-left:3px solid #da3633;display:block;margin:0 -14px;padding:0 14px}
+  .gl{background:rgba(46,160,67,0.1);border-left:3px solid #2ea043;display:block;margin:0 -14px;padding:0 14px}
+  .c{color:#8b949e}.k{color:#ff7b72}.s{color:#a5d6ff}.f{color:#d2a8ff}
+  .flow{background:#161b22;border:1px solid #21262d;border-radius:6px;padding:14px 18px;margin:12px 0;font-family:"Cascadia Code","Consolas",monospace;font-size:12px;line-height:2}
+  .issue-box{background:#2d1117;border:1px solid #da3633;border-radius:6px;padding:14px 18px;margin:12px 0}
+  .issue-box h4{color:#f85149;font-size:13px;margin-bottom:8px}
+  .issue-box ul{padding-left:18px;font-size:13px;color:#c9d1d9;line-height:1.8}
+  .footer{font-size:11px;color:#484f58;margin-top:24px;border-top:1px solid #21262d;padding-top:12px}
+</style>
+</head>
+<body>
+<div class="header">
+  <span class="bv">V14</span><span class="bb">BEFORE FIX</span><span class="bl">BASELINE 23faaa1</span>
+  <h1>V14 — User-Controlled Regex Injection with Potential ReDoS</h1>
+  <div class="meta">Evidence type: Code inspection | File: backend/utils/tutoringSessionUtils.js | 2026-09-26T09:56:51.581Z</div>
+</div>
+
+<div class="code-block">
+  <div class="code-header"><span>backend/utils/tutoringSessionUtils.js — commit 23faaa1 (full file, 27 lines)</span><span>V14 Root Cause</span></div>
+  <pre><span class="c">// helper utilities related to tutoring session filtering</span>
+
+<span class="c">// escapeRegex HELPER EXISTS (lines 3-5) — but is NOT used for subject below</span>
+<span class="gl"><span class="k">export function</span> <span class="f">escapeRegex</span>(s = <span class="s">""</span>) {
+  <span class="k">return</span> String(s).<span class="f">replace</span>(/[.*+?^${}()|[\]\\]/g, <span class="s">"\\$&amp;"</span>);
+}</span>
+
+<span class="k">export function</span> <span class="f">buildFilter</span>(query) {
+  <span class="k">const</span> now = <span class="k">new</span> Date();
+  <span class="k">let</span> filter = { <span class="s">"schedule.date"</span>: { $gte: now } };
+
+  <span class="k">if</span> (query.tutor) filter.tutor = query.tutor;
+<span class="vl">  <span class="k">if</span> (query.subject) filter.subject = { $regex: query.subject, $options: <span class="s">"i"</span> };
+  <span class="c">// ^^^ LINE 12 — VULNERABLE: query.subject passed RAW to $regex — no escapeRegex() called</span></span>
+  <span class="k">if</span> (query.level) filter.level = query.level;
+  <span class="k">if</span> (query.status) filter.status = query.status;
+
+  <span class="k">if</span> (query.grade) {
+    <span class="k">const</span> g = query.grade;
+    <span class="k">const</span> gradeNum = Number(g);
+<span class="gl">    <span class="k">const</span> gradeOr = [{ level: { $regex: `^${<span class="f">escapeRegex</span>(g)}$`, $options: <span class="s">"i"</span> } }];
+    <span class="c">// ^^^ grade CORRECTLY uses escapeRegex — subject does not. Inconsistency = bug.</span></span>
+    <span class="k">if</span> (!Number.isNaN(gradeNum)) gradeOr.<span class="f">push</span>({ grade: gradeNum });
+    <span class="k">else</span> gradeOr.<span class="f">push</span>({ grade: g });
+    filter = { $and: [filter, { $or: gradeOr }] };
+  }
+
+  <span class="k">return</span> filter;
+}</pre>
+</div>
+
+<div class="flow">
+  <strong style="color:#e6edf3">Attack Flow:</strong><br>
+  <span style="color:#a5d6ff">GET /api/tutoring-sessions/?subject=(a%2B)%2B</span><br>
+  &nbsp;&nbsp;&darr;<br>
+  <span style="color:#8b949e">tutoringSessionRouter.js:22 → getAllTutoringSessions()</span><br>
+  &nbsp;&nbsp;&darr;<br>
+  <span style="color:#8b949e">tutoringSessionService.js:146 → buildFilter(req.query)</span><br>
+  &nbsp;&nbsp;&darr;<br>
+  <span style="color:#da3633">tutoringSessionUtils.js:12 → filter.subject = { $regex: "(a+)+", $options: "i" }</span><br>
+  &nbsp;&nbsp;&darr;<br>
+  <span style="color:#da3633">MongoDB evaluates regex /(a+)+/i → catastrophic backtracking → CPU spike</span>
+</div>
+
+<div class="issue-box">
+  <h4>&#128204; What This Evidence Proves</h4>
+  <ul>
+    <li><strong>Bug location:</strong> line 12 of tutoringSessionUtils.js — <code>filter.subject = { $regex: query.subject }</code></li>
+    <li><strong>Helper exists but unused:</strong> <code>escapeRegex()</code> is defined in the same file (lines 3-5) and correctly used for <code>grade</code> on line 19 — proving the developer knew the pattern but omitted it for subject</li>
+    <li><strong>ReDoS potential:</strong> Inputs like <code>(a+)+</code>, <code>(a|aa)+</code> cause exponential backtracking in MongoDB's regex engine</li>
+    <li><strong>Endpoint is public:</strong> No authentication on GET /api/tutoring-sessions/ in baseline — amplifies severity</li>
+    <li><strong>OWASP A03:2021 — Injection | CWE-1333 — Inefficient Regular Expression | Severity: Medium</strong></li>
+  </ul>
+</div>
+<div class="footer">SE4030 Member 3 Evidence | Pramodya Alahakoon IT23405240 | 2026-09-26 | No files modified | No commits | No ReDoS payload executed</div>
+</body>
+</html>

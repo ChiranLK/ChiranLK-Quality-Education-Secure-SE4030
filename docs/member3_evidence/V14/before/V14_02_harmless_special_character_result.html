@@ -1,0 +1,79 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>V14 Before — Harmless Special Character Test</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}body{font-family:"Segoe UI",sans-serif;background:#0d1117;color:#c9d1d9;padding:24px}
+  .header{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px 20px;margin-bottom:20px}
+  .bv{display:inline-block;background:#da3633;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;margin-right:6px}
+  .bb{display:inline-block;background:#9e6a03;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;margin-right:6px}
+  .bm{display:inline-block;background:#6e7681;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px}
+  h1{font-size:17px;color:#e6edf3;margin-top:10px}.meta{font-size:12px;color:#8b949e;margin-top:6px}
+  .test-block{background:#161b22;border:1px solid #30363d;border-radius:6px;margin-bottom:14px;overflow:hidden}
+  .test-header{background:#21262d;padding:8px 14px;font-size:12px;color:#8b949e;display:flex;justify-content:space-between;border-bottom:1px solid #30363d}
+  pre{padding:14px;overflow-x:auto;font-size:13px;line-height:1.6;font-family:"Cascadia Code","Consolas",monospace}
+  .vl{background:rgba(218,54,51,0.12);border-left:3px solid #da3633;display:block;margin:0 -14px;padding:0 14px}
+  .s200{color:#2ea043;font-weight:700}
+  .issue-box{background:#2d1117;border:1px solid #da3633;border-radius:6px;padding:14px 18px;margin:12px 0}
+  .issue-box h4{color:#f85149;font-size:13px;margin-bottom:8px}
+  .issue-box ul{padding-left:18px;font-size:13px;color:#c9d1d9;line-height:1.8}
+  .footer{font-size:11px;color:#484f58;margin-top:24px;border-top:1px solid #21262d;padding-top:12px}
+</style>
+</head>
+<body>
+<div class="header">
+  <span class="bv">V14</span><span class="bb">BEFORE FIX</span><span class="bm">SAFE TEST ONLY</span>
+  <h1>V14 — Harmless Special Character Accepted Without Escaping</h1>
+  <div class="meta">Test: Safe regex metacharacter test only — NO catastrophic patterns executed | 2026-09-26 | Fake session data</div>
+</div>
+
+<div class="test-block">
+  <div class="test-header"><span>Test V14-B-1: Normal search (baseline behavior)</span><span>Expected: 200, matching results</span></div>
+  <pre>GET http://localhost:5001/api/tutoring-sessions/?subject=mathematics
+Authorization: (none — endpoint is public in baseline)
+
+Expected: <span class="s200">HTTP 200 OK</span>
+{ "sessions": [{ "title": "Grade 10 Mathematics..." }], "pagination": {...} }
+Response time: &lt;50ms (normal)</pre>
+</div>
+
+<div class="test-block">
+  <div class="test-header"><span>Test V14-B-2: Harmless regex metacharacter — caret ^ (safe test)</span><span>Expected: 200, subject filter misinterpreted</span></div>
+  <pre>GET http://localhost:5001/api/tutoring-sessions/?subject=%5E
+(URL-decoded: subject=^)
+
+Expected baseline behavior:
+<span class="s200">HTTP 200 OK</span>
+MongoDB receives: { subject: { $regex: "^", $options: "i" } }
+Regex ^ means "start of string" — matches ALL sessions (unintended behavior)
+<span class="vl">Result: All sessions returned, not just sessions with ^ in the subject name
+This proves user input controls regex behavior — ^ is treated as an anchor, not a literal character</span></pre>
+</div>
+
+<div class="test-block">
+  <div class="test-header"><span>Test V14-B-3: C++ subject search (safe — no backtracking)</span><span>Expected: wrong results in baseline</span></div>
+  <pre>GET http://localhost:5001/api/tutoring-sessions/?subject=C%2B%2B
+(URL-decoded: subject=C++)
+
+Expected baseline behavior:
+<span class="s200">HTTP 200 OK</span>
+MongoDB receives: { subject: { $regex: "C++", $options: "i" } }
+Regex C++ means "C followed by one or more + characters" — this is incorrect
+<span class="vl">Intent was to search for literal "C++" but regex metacharacters are not escaped
+Correct behavior would escape to: C\+\+ (two literal plus signs)</span></pre>
+</div>
+
+<div class="issue-box">
+  <h4>&#128204; What These Tests Prove</h4>
+  <ul>
+    <li>User-supplied regex characters ARE passed to MongoDB unescaped in baseline</li>
+    <li><code>^</code> becomes a regex anchor (matches all), not a literal caret character</li>
+    <li><code>C++</code> is treated as regex quantifier, not a literal programming language name</li>
+    <li>No catastrophic patterns were tested — these safe tests are sufficient to demonstrate injection</li>
+    <li>After fix: all metacharacters should be treated as literals, matching only exact characters</li>
+  </ul>
+</div>
+<div class="footer">SE4030 Member 3 Evidence | SAFE TEST — No ReDoS payload used | Pramodya Alahakoon IT23405240 | 2026-09-26</div>
+</body>
+</html>

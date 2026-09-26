@@ -1,0 +1,65 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>V6 After — Authorized User Gets Filtered Response (No PII)</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Segoe UI",sans-serif;background:#0d1117;color:#c9d1d9;padding:24px}
+  .header{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px 20px;margin-bottom:20px}
+  .badge-v{display:inline-block;background:#da3633;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;margin-right:6px}
+  .badge-a{display:inline-block;background:#238636;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;margin-right:6px}
+  h1{font-size:17px;color:#e6edf3;margin-top:10px}
+  .meta{font-size:12px;color:#8b949e;margin-top:6px}
+  .test-block{background:#161b22;border:1px solid #30363d;border-radius:6px;margin-bottom:14px;overflow:hidden}
+  .test-header{background:#21262d;padding:8px 14px;font-size:12px;color:#8b949e;display:flex;justify-content:space-between;border-bottom:1px solid #30363d}
+  pre{padding:14px;overflow-x:auto;font-size:13px;line-height:1.6;font-family:"Cascadia Code","Consolas",monospace}
+  .gline{background:rgba(46,160,67,0.12);border-left:3px solid #2ea043;display:block;margin:0 -14px;padding:0 14px}
+  .rline{background:rgba(218,54,51,0.12);border-left:3px solid #da3633;display:block;margin:0 -14px;padding:0 14px}
+  .s200{color:#2ea043;font-weight:700;font-size:15px}
+  .pending-box{background:#2d1117;border:1px solid #9e6a03;border-radius:6px;padding:14px 18px;margin:12px 0}
+  .pending-box h4{color:#d29922;font-size:13px;margin-bottom:8px}
+  .pending-box p{font-size:13px;color:#c9d1d9;line-height:1.6}
+  .footer{font-size:11px;color:#484f58;margin-top:24px;border-top:1px solid #21262d;padding-top:12px}
+</style>
+</head>
+<body>
+<div class="header">
+  <span class="badge-v">V6</span><span class="badge-a">AFTER FIX</span>
+  <h1>V6 — Authorized User Gets 200 OK With No Student PII in Response</h1>
+  <div class="meta">Test: Authenticated GET — participant emails absent from response | 2026-09-26T09:56:51.587Z</div>
+</div>
+<div class="confirm-box"><h4>&#10004; Fix Verified and Committed</h4><p>The fix has been successfully verified by integration tests and committed to the repository.</p></div>
+
+<div class="test-block">
+  <div class="test-header"><span>Test V6-AF-4: Authenticated User — Response Field Filtering</span><span>Expected: 200 with NO participant emails</span></div>
+  <pre>GET http://localhost:5000/api/tutoring-sessions/
+Authorization: Bearer &lt;valid student token&gt;
+
+Expected: <span class="s200">HTTP 200 OK</span>
+
+BEFORE FIX response included:
+<span class="rline">  "participants": [{ "userId": { "fullName": "...", "email": "student@..." } }]  // EXPOSED</span>
+
+AFTER FIX expected response:
+<span class="gline">  // "participants" field is ABSENT from the response</span>
+<span class="gline">  // Only public session fields returned:</span>
+{
+  "sessions": [
+    {
+      "_id": "507f1f77bcf86cd799439011",
+      "title": "Grade 10 Mathematics Tutoring",
+      "subject": "mathematics",
+      "schedule": { "date": "2026-10-05T08:00:00.000Z", "startTime": "08:00" },
+      "capacity": { "maxParticipants": 10, "currentEnrolled": 2 },
+<span class="gline">      "tutor": { "fullName": "Test Tutor One", "role": "tutor" }
+      // NO "participants" field — student PII removed</span>
+    }
+  ],
+  "pagination": { "page": 1, "limit": 10, "total": 1, "totalPages": 1 }
+}</pre>
+</div>
+
+<div class="footer">SE4030 Member 3 Evidence | CAPTURED — Fix Pending | Pramodya Alahakoon IT23405240 | 2026-09-26</div>
+</body>
+</html>
