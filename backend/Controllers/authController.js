@@ -169,19 +169,44 @@ export const updateProfile = async (req, res) => {
       throw new BadRequestError("User ID not found in request");
     }
 
-    const { fullName, email, phoneNumber, location, grade, tutorProfile } = req.body;
-
-    if (!fullName && !email && !phoneNumber && !location && !grade && !tutorProfile) {
-      throw new BadRequestError("At least one field must be provided to update");
+    const updateData = {};
+    const editableProfileFields = [
+      "fullName",
+      "email",
+      "phoneNumber",
+      "location",
+      "grade",
+    ];
+    for (const field of editableProfileFields) {
+      if (req.body[field] !== undefined) {
+        updateData[field] = req.body[field];
+      }
     }
 
-    const updateData = {};
-    if (fullName) updateData.fullName = fullName;
-    if (email) updateData.email = email;
-    if (phoneNumber) updateData.phoneNumber = phoneNumber;
-    if (location) updateData.location = location;
-    if (grade !== undefined) updateData.grade = grade;
-    if (tutorProfile) updateData.tutorProfile = tutorProfile;
+    // Tutor-owned profile details are editable, but verification, ratings and
+    // session counts are system-managed and must never be mass assigned.
+    if (req.user.role === "tutor" && req.body.tutorProfile) {
+      const editableTutorFields = [
+        "subjects",
+        "bio",
+        "experience",
+        "qualifications",
+        "specializations",
+        "hourlyRate",
+        "availability",
+        "languages",
+      ];
+
+      for (const field of editableTutorFields) {
+        if (req.body.tutorProfile[field] !== undefined) {
+          updateData[`tutorProfile.${field}`] = req.body.tutorProfile[field];
+        }
+      }
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      throw new BadRequestError("At least one field must be provided to update");
+    }
 
     const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
       new: true,
@@ -713,4 +738,3 @@ export const resetPassword = async (req, res) => {
     msg: "Password reset successfully. You can now log in with your new password.",
   });
 };
-

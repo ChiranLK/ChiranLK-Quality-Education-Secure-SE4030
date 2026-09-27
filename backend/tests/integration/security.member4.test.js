@@ -33,6 +33,16 @@ const studyMaterialModelMock = {
   deleteMany: jest.fn(),
 };
 
+const loginTicketModelMock = {
+  create: jest.fn(),
+  findOneAndDelete: jest.fn(),
+};
+
+const oauthStateModelMock = {
+  create: jest.fn(),
+  findOneAndDelete: jest.fn(),
+};
+
 const mailMocks = {
   sendLoginNotificationEmail: jest.fn(),
   sendPasswordResetEmail: jest.fn(),
@@ -45,6 +55,7 @@ const oauthClientMock = {
   generateAuthUrl: jest.fn(),
   getToken: jest.fn(),
   setCredentials: jest.fn(),
+  verifyIdToken: jest.fn(),
 };
 const oauthUserInfoGetMock = jest.fn();
 const OAuth2Mock = jest.fn(function OAuth2MockImplementation() {
@@ -57,6 +68,14 @@ jest.unstable_mockModule("../../models/UserModel.js", () => ({
 
 jest.unstable_mockModule("../../models/StudyMaterialModel.js", () => ({
   default: studyMaterialModelMock,
+}));
+
+jest.unstable_mockModule("../../models/LoginTicketModel.js", () => ({
+  default: loginTicketModelMock,
+}));
+
+jest.unstable_mockModule("../../models/OAuthStateModel.js", () => ({
+  default: oauthStateModelMock,
 }));
 
 jest.unstable_mockModule("../../services/feedbackMailService.js", () => mailMocks);
@@ -147,6 +166,8 @@ const originalEnvironment = {
 let consoleLogSpy;
 let consoleErrorSpy;
 let storedPasswordHash;
+let storedLoginTicket;
+let storedOAuthState;
 
 const buildStoredUser = (overrides = {}) => ({
   _id: "member4-user-id",
@@ -229,9 +250,19 @@ beforeEach(() => {
     "https://accounts.example.test/synthetic-oauth",
   );
   oauthClientMock.getToken.mockReset().mockResolvedValue({
-    tokens: { access_token: "synthetic-provider-marker" },
+    tokens: { id_token: "synthetic-provider-id-token" },
   });
   oauthClientMock.setCredentials.mockReset().mockImplementation(() => {});
+  oauthClientMock.verifyIdToken.mockReset().mockImplementation(async () => ({
+    getPayload: () => ({
+      sub: "synthetic-google-id",
+      email: "oidc.user@example.test",
+      email_verified: true,
+      name: "Synthetic OIDC User",
+      picture: "https://images.example.test/avatar.png",
+      nonce: storedOAuthState?.nonce,
+    }),
+  }));
   oauthUserInfoGetMock.mockReset().mockResolvedValue({
     data: {
       id: "synthetic-google-id",
@@ -240,6 +271,30 @@ beforeEach(() => {
       picture: "https://images.example.test/avatar.png",
     },
   });
+
+  storedOAuthState = undefined;
+  oauthStateModelMock.create.mockReset().mockImplementation(async (data) => {
+    storedOAuthState = data;
+    return data;
+  });
+  oauthStateModelMock.findOneAndDelete
+    .mockReset()
+    .mockImplementation(async ({ stateHash }) => {
+      if (storedOAuthState?.stateHash !== stateHash) return null;
+      return storedOAuthState;
+    });
+
+  storedLoginTicket = undefined;
+  loginTicketModelMock.create.mockReset().mockImplementation(async (data) => {
+    storedLoginTicket = data;
+    return data;
+  });
+  loginTicketModelMock.findOneAndDelete
+    .mockReset()
+    .mockImplementation(async ({ ticketHash }) => {
+      if (storedLoginTicket?.ticketHash !== ticketHash) return null;
+      return storedLoginTicket;
+    });
 });
 
 afterEach(() => {
@@ -605,36 +660,58 @@ describe("V13 - security headers and secure authentication cookies", () => {
 
   it("V13-T07: OIDC authorization and credentialed CORS remain functional", async () => {
     const response = await request(testApp)
-      .get("/api/google-oauth/auth-url?role=user")
+      .get("/api/google-oauth/start?role=user")
       .set("Origin", TEST_FRONTEND_ORIGIN)
-      .expect(200);
+      .expect(302);
 
-    expect(response.body.url).toBe("https://accounts.example.test/synthetic-oauth");
+    expect(response.headers.location).toBe(
+      "https://accounts.example.test/synthetic-oauth",
+    );
     expect(response.headers["access-control-allow-origin"]).toBe(
       TEST_FRONTEND_ORIGIN,
     );
     expect(response.headers["access-control-allow-credentials"]).toBe("true");
+    expect(oauthStateModelMock.create).toHaveBeenCalledTimes(1);
   });
 
-  it("V13-T08: mocked OIDC callback still redirects and sets protected cookies", async () => {
+  it("V13-T08: mocked OIDC callback and exchange set protected cookies", async () => {
     const oidcUser = buildStoredUser({
       email: "oidc.user@example.test",
       authProvider: "google",
     });
     userModelMock.findOne.mockResolvedValueOnce(oidcUser);
+    userModelMock.findById.mockResolvedValueOnce(oidcUser);
 
-    const response = await request(testApp)
-      .get("/api/google-oauth/callback")
-      .query({ code: "synthetic-code", state: JSON.stringify({ role: "user" }) })
+    const start = await request(testApp)
+      .get("/api/google-oauth/start?role=user")
       .expect(302);
-    const redirect = new URL(response.headers.location);
-    const { attributes } = cookieParts(response);
+    const state = oauthClientMock.generateAuthUrl.mock.calls[0][0].state;
+    const stateCookie = start.headers["set-cookie"]
+      .find((header) => header.startsWith("g_oauth_state="))
+      .split(";")[0];
+
+    const callback = await request(testApp)
+      .get("/api/google-oauth/callback")
+      .set("Cookie", stateCookie)
+      .query({ code: "synthetic-code", state })
+      .expect(302);
+    const redirect = new URL(callback.headers.location);
+    const loginCode = redirect.searchParams.get("code");
+
+    const exchange = await request(testApp)
+      .post("/api/google-oauth/exchange")
+      .send({ code: loginCode })
+      .expect(200);
+    const { attributes } = cookieParts(exchange);
 
     expect(redirect.origin).toBe(TEST_FRONTEND_ORIGIN);
     expect(redirect.pathname).toBe("/auth-success");
+    expect(loginCode).toBeTruthy();
     expect(attributes).toContain("httponly");
     expect(attributes).toContain("samesite=lax");
     expect(oauthClientMock.getToken).toHaveBeenCalledTimes(1);
-    expect(oauthUserInfoGetMock).toHaveBeenCalledTimes(1);
+    expect(oauthClientMock.verifyIdToken).toHaveBeenCalledTimes(1);
+    expect(loginTicketModelMock.create).toHaveBeenCalledTimes(1);
+    expect(loginTicketModelMock.findOneAndDelete).toHaveBeenCalledTimes(1);
   });
 });
