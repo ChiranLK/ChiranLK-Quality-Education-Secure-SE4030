@@ -1,4 +1,5 @@
 import { sendMail } from "../services/mailService.js";
+import { logSafeError } from "../utils/safeLogger.js";
 
 export const sendTestEmail = async (req, res) => {
   try {
@@ -10,10 +11,9 @@ export const sendTestEmail = async (req, res) => {
 
     res.json({ message: "Email sent (check Mailtrap inbox)" });
   } catch (err) {
-    console.error("sendTestEmail error:", err);
+    logSafeError("test_email_failed", err, { statusCode: 500 });
     res.status(500).json({
-      message: "Failed to send email",
-      error: err?.message || "Unknown error"
+      message: "Failed to send email"
     });
   }
 };

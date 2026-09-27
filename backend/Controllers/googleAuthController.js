@@ -14,6 +14,8 @@ import OAuthState from "../models/OAuthStateModel.js";
 import { createJWT } from "../utils/generateToken.js";
 import { StatusCodes } from "http-status-codes";
 import { BadRequestError } from "../errors/customErrors.js";
+import { logSafeError } from "../utils/safeLogger.js";
+import { AUTH_COOKIE_NAME, getAuthCookieOptions } from "../utils/authCookie.js";
 import {
   sanitizeSignupRole,
   randomToken,
@@ -178,8 +180,7 @@ export const handleGoogleCallback = async (req, res) => {
     res.setHeader("Referrer-Policy", "no-referrer");
     return res.redirect(successUrl.toString());
   } catch (err) {
-    // Details stay in the server log only
-    console.error("Google sign-in failed:", err.message);
+    logSafeError("google_oauth_callback_failed", err, { statusCode: 500 });
     return redirectWithError(res, "server_error");
   }
 };
@@ -207,12 +208,7 @@ export const exchangeLoginCode = async (req, res) => {
 
   const token = createJWT({ userId: user._id, id: user._id, role: user.role });
 
-  res.cookie("token", token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "Lax",
-    maxAge: 24 * 60 * 60 * 1000,
-  });
+  res.cookie(AUTH_COOKIE_NAME, token, getAuthCookieOptions());
 
   res.status(StatusCodes.OK).json({ token, user: user.toJSON() });
 };

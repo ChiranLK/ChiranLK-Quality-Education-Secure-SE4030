@@ -3,6 +3,10 @@ import User from "../models/UserModel.js";
 import Message from "../models/MessageModel.js";
 import { body, param, validationResult } from "express-validator";
 import { BadRequestError } from "../errors/customErrors.js";
+import {
+  meetsPasswordPolicy,
+  PASSWORD_POLICY_MESSAGE,
+} from "../utils/passwordPolicy.js";
 
 // Helper function to wrap validation chains with error handling
 const withValidationError = (validateValues) => {
@@ -42,8 +46,8 @@ export const validateRegisterInput = withValidationError([
   body("password")
     .notEmpty()
     .withMessage("Password is required")
-    .isLength({ min: 6 })
-    .withMessage("Password must be at least 6 characters long"),
+    .custom((password) => meetsPasswordPolicy(password))
+    .withMessage(PASSWORD_POLICY_MESSAGE),
   body("phoneNumber")
     .notEmpty()
     .withMessage("Phone number is required")
