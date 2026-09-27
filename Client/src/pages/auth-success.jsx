@@ -6,8 +6,6 @@ export default function AuthSuccessPage() {
   const started = useRef(false);
 
   useEffect(() => {
-    // React StrictMode runs effects twice in development.
-    // The code only works once, so only send it once.
     if (started.current) return;
     started.current = true;
 
