@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Feedback from "../models/FeedbackModel.js";
 import User from "../models/UserModel.js";
 import { sendFeedbackNotificationEmail } from "../services/feedbackMailService.js";
+import { logSafeError, logSafeEvent } from "../utils/safeLogger.js";
 
 const STUDENT_ROLE = process.env.STUDENT_ROLE || "user";
 const TUTOR_ROLE = process.env.TUTOR_ROLE || "tutor";
@@ -34,14 +35,14 @@ export const submitFeedback = async (req, res) => {
     }
 
     const tutor = await User.findById(tutorId).select("_id role fullName email");
-    console.log('Tutor lookup result:', { id: tutorId, role: tutor?.role, fullName: tutor?.fullName });
-    console.log('TUTOR_ROLE constant:', TUTOR_ROLE);
+    logSafeEvent("feedback_tutor_lookup_completed", {
+      outcome: tutor ? "found" : "not_found",
+    });
     
     if (!tutor) return res.status(404).json({ message: "Tutor not found" });
 
     // enforce "tutor" role if you want strictness:
     if (tutor.role !== TUTOR_ROLE && tutor.role !== "admin") {
-      console.log('Role check failed - Expected:', TUTOR_ROLE, 'Got:', tutor.role);
       return res.status(400).json({ message: "Target user is not a tutor" });
     }
 
@@ -68,7 +69,7 @@ export const submitFeedback = async (req, res) => {
         },
         { returnDocument: 'after' }
       );
-      console.log(`Updated tutor rating: avg=${averageRating.toFixed(1)}, count=${allFeedback.length}`);
+      logSafeEvent("tutor_rating_updated", { count: allFeedback.length });
     }
 
     // Send email asynchronously without blocking response
@@ -85,7 +86,7 @@ export const submitFeedback = async (req, res) => {
     }).catch((e) => {
       // Silently catch email errors to prevent test timeouts
       if (process.env.NODE_ENV !== 'test') {
-        console.error("Feedback notification email failed:", e.message);
+        logSafeError("feedback_notification_email_failed", e, { statusCode: 500 });
       }
     });
 
@@ -96,7 +97,7 @@ export const submitFeedback = async (req, res) => {
       // Drop the old index and retry
       try {
         await Feedback.collection.dropIndex('student_1_tutor_1_session_1');
-        console.log('Dropped old unique index, retrying...');
+        logSafeEvent("feedback_legacy_index_removed", { outcome: "success" });
         const payload = {
           student: req.user._id,
           tutor: tutorId,
@@ -107,11 +108,12 @@ export const submitFeedback = async (req, res) => {
         const saved = await Feedback.create(payload);
         return res.status(201).json({ message: "Feedback saved", feedback: saved });
       } catch (retryErr) {
-        console.error('Retry failed:', retryErr.message);
-        return res.status(500).json({ message: "Server error after index drop", error: retryErr.message });
+        logSafeError("feedback_save_retry_failed", retryErr, { statusCode: 500 });
+        return res.status(500).json({ message: "Server error after index drop" });
       }
     }
-    return res.status(500).json({ message: "Server error", error: err.message });
+    logSafeError("feedback_save_failed", err, { statusCode: 500 });
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -127,7 +129,8 @@ export const getMyFeedbacks = async (req, res) => {
 
     return res.json({ count: list.length, feedbacks: list });
   } catch (err) {
-    return res.status(500).json({ message: "Server error", error: err.message });
+    logSafeError("feedback_list_fetch_failed", err, { statusCode: 500 });
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -155,7 +158,8 @@ export const getTutorFeedbacks = async (req, res) => {
 
     return res.json({ count: feedbacks.length, feedbacks });
   } catch (err) {
-    return res.status(500).json({ message: "Server error", error: err.message });
+    logSafeError("tutor_feedback_fetch_failed", err, { statusCode: 500 });
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -210,7 +214,8 @@ export const getTutorRatingStats = async (req, res) => {
       }
     );
   } catch (err) {
-    return res.status(500).json({ message: "Server error", error: err.message });
+    logSafeError("feedback_rating_summary_failed", err, { statusCode: 500 });
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -244,7 +249,8 @@ export const getAllFeedbacks = async (req, res) => {
       }))
     });
   } catch (err) {
-    return res.status(500).json({ success: false, message: "Server error", error: err.message });
+    logSafeError("feedback_detail_fetch_failed", err, { statusCode: 500 });
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -273,7 +279,8 @@ export const deleteFeedback = async (req, res) => {
     await Feedback.deleteOne({ _id: id });
     return res.json({ message: "Feedback deleted" });
   } catch (err) {
-    return res.status(500).json({ message: "Server error", error: err.message });
+    logSafeError("feedback_deletion_failed", err, { statusCode: 500 });
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -330,7 +337,8 @@ export const updateFeedbackAdmin = async (req, res) => {
 
     return res.json({ message: "Feedback updated", feedback: updated });
   } catch (err) {
-    return res.status(500).json({ message: "Server error", error: err.message });
+    logSafeError("feedback_update_failed", err, { statusCode: 500 });
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -398,6 +406,7 @@ export const createFeedbackAdmin = async (req, res) => {
 
     return res.status(201).json({ message: "Feedback created by admin", feedback: saved });
   } catch (err) {
-    return res.status(500).json({ message: "Server error", error: err.message });
+    logSafeError("admin_feedback_creation_failed", err, { statusCode: 500 });
+    return res.status(500).json({ message: "Server error" });
   }
 };

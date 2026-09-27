@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Progress from "../models/ProgressModel.js";
 import User from "../models/UserModel.js";
 import { sendProgressNotificationEmail } from "../services/feedbackMailService.js";
+import { logSafeError, logSafeEvent } from "../utils/safeLogger.js";
 
 const STUDENT_ROLE = process.env.STUDENT_ROLE || "user";
 const TUTOR_ROLE = process.env.TUTOR_ROLE || "tutor";
@@ -80,12 +81,6 @@ export const upsertProgress = async (req, res) => {
         User.findById(studentId).select("fullName email"),
         User.findById(tutorId).select("fullName email"),
       ]);
-      console.log("[ProgressEmail] updatedByRole:", updatedByRole);
-      console.log("[ProgressEmail] studentEmail:", studentUser?.email);
-      console.log("[ProgressEmail] tutorEmail:  ", tutorUser?.email);
-      console.log("[ProgressEmail] SEND_PROGRESS_EMAIL:", process.env.SEND_PROGRESS_EMAIL);
-      console.log("[ProgressEmail] PROGRESS_EMAIL_TO_TUTOR:", process.env.PROGRESS_EMAIL_TO_TUTOR);
-      console.log("[ProgressEmail] PROGRESS_EMAIL_TO_STUDENT:", process.env.PROGRESS_EMAIL_TO_STUDENT);
       await sendProgressNotificationEmail({
         studentName: studentUser?.fullName || "Student",
         studentEmail: studentUser?.email,
@@ -97,16 +92,16 @@ export const upsertProgress = async (req, res) => {
         sessionId: sessionId || null,
         updatedByRole,
       });
-      console.log("[ProgressEmail] Email(s) sent successfully.");
+      logSafeEvent("progress_notification_completed", { outcome: "success" });
     }).catch((e) => {
-      console.error("[ProgressEmail] FAILED:", e.message);
-      console.error(e);
+      logSafeError("progress_notification_failed", e, { statusCode: 500 });
     });
 
     return res.json({ message: "Progress saved", progress: doc });
 
   } catch (err) {
-    return res.status(500).json({ message: "Server error", error: err.message });
+    logSafeError("progress_upsert_failed", err, { statusCode: 500 });
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -122,7 +117,8 @@ export const getMyProgress = async (req, res) => {
 
     return res.json({ count: list.length, progress: list });
   } catch (err) {
-    return res.status(500).json({ message: "Server error", error: err.message });
+    logSafeError("progress_list_fetch_failed", err, { statusCode: 500 });
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -159,7 +155,8 @@ export const getProgressByStudent = async (req, res) => {
 
     return res.json({ count: list.length, progress: list });
   } catch (err) {
-    return res.status(500).json({ message: "Server error", error: err.message });
+    logSafeError("student_progress_fetch_failed", err, { statusCode: 500 });
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -188,7 +185,8 @@ export const getProgressByTutor = async (req, res) => {
 
     return res.json({ count: list.length, progress: list });
   } catch (err) {
-    return res.status(500).json({ message: "Server error", error: err.message });
+    logSafeError("tutor_progress_fetch_failed", err, { statusCode: 500 });
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -211,7 +209,8 @@ export const getAllProgress = async (req, res) => {
 
     return res.json({ count: list.length, progress: list });
   } catch (err) {
-    return res.status(500).json({ message: "Server error", error: err.message });
+    logSafeError("progress_history_fetch_failed", err, { statusCode: 500 });
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -241,6 +240,7 @@ export const deleteProgress = async (req, res) => {
     await Progress.deleteOne({ _id: id });
     return res.json({ message: "Progress record deleted" });
   } catch (err) {
-    return res.status(500).json({ message: "Server error", error: err.message });
+    logSafeError("progress_deletion_failed", err, { statusCode: 500 });
+    return res.status(500).json({ message: "Server error" });
   }
 };
