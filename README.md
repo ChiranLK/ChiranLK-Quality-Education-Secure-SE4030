@@ -363,6 +363,9 @@ npm run test:coverage
 ### Focused security suites
 
 ```bash
+# V1, V2, V10 and OpenID Connect
+npm test -- --runInBand tests/integration/security.member1.test.js
+
 # V3, V4 and V5
 npm test -- --runInBand \
   tests/unit/authController.security.test.js \
@@ -383,6 +386,7 @@ Recorded focused results:
 
 | Scope | Result |
 |---|---:|
+| Member 1 V1/V2/V10/OIDC security tests | 30 passed, 0 failed |
 | Member 2 focused V3/V4/V5 unit tests | 16 passed |
 | Member 2 targeted V3/V4 integration tests | 39 passed |
 | Member 3 V6/V7/V14 security tests | 39 passed, 0 failed |
@@ -430,6 +434,7 @@ Protected requests use the authentication cookie and/or supported `Authorization
 
 ### Evidence locations
 
+- Member 1: [`docs/IT23472020_member1_evidence/final/Final_Manifest.md`](docs/IT23472020_member1_evidence/final/Final_Manifest.md)
 - Member 2: [`docs/security/member2-chiran-summary.md`](docs/security/member2-chiran-summary.md) and the V3/V4/V5 reports.
 - Member 3: [`docs/member3_evidence/Final_Manifest.md`](docs/member3_evidence/Final_Manifest.md) and [`docs/member3_evidence/final/Evidence_Index.md`](docs/member3_evidence/final/Evidence_Index.md).
 - Member 4: [`docs/member4_evidence/Final_Manifest.md`](docs/member4_evidence/Final_Manifest.md), [`docs/member4_evidence/final/Evidence_Index.md`](docs/member4_evidence/final/Evidence_Index.md), and [Member 4 discussion](docs/member4_evidence/final/Member4_Discussion.md).
