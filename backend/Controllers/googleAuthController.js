@@ -1,12 +1,4 @@
-/**
- * "Sign in with Google" using OpenID Connect (OIDC)
- * Authorization Code flow with PKCE.
- *
- * 1. GET  /api/google-oauth/start     create state + nonce + PKCE, redirect to Google
- * 2. GET  /api/google-oauth/callback  check state, swap code (+ PKCE verifier) for
- *                                     tokens, verify the ID token, find/create user
- * 3. POST /api/google-oauth/exchange  swap the one-time login code for our JWT
- */
+
 import { google } from "googleapis";
 import User from "../models/UserModel.js";
 import LoginTicket from "../models/LoginTicketModel.js";
@@ -51,13 +43,13 @@ const redirectWithError = (res, code) => {
   return res.redirect(errorUrl.toString());
 };
 
-// ─── STEP 1: GET /api/google-oauth/start?role=user|tutor ─────────────────────
-export const startGoogleSignIn = async (req, res) => {
-  const role = sanitizeSignupRole(req.query.role); // never "admin"
 
-  const state = randomToken(); // protects against login CSRF
-  const nonce = randomToken(); // protects against ID token replay
-  const codeVerifier = randomToken(); // PKCE secret, stays on the server
+export const startGoogleSignIn = async (req, res) => {
+  const role = sanitizeSignupRole(req.query.role); // "user" or "tutor" only, default to "user" never admin
+
+  const state = randomToken(); 
+  const nonce = randomToken(); 
+  const codeVerifier = randomToken(); 
   const codeChallenge = pkceChallenge(codeVerifier);
 
   await OAuthState.create({
@@ -68,7 +60,6 @@ export const startGoogleSignIn = async (req, res) => {
     expiresAt: new Date(Date.now() + STATE_TTL_MS),
   });
 
-  // Ties this sign-in attempt to this browser
   res.cookie(STATE_COOKIE, state, { ...stateCookieOptions, maxAge: STATE_TTL_MS });
 
   const url = getOAuth2Client().generateAuthUrl({
@@ -185,7 +176,7 @@ export const handleGoogleCallback = async (req, res) => {
   }
 };
 
-// ─── STEP 3: POST /api/google-oauth/exchange { code } ───────────────────────
+
 export const exchangeLoginCode = async (req, res) => {
   const { code } = req.body || {};
   if (typeof code !== "string" || code.length < 20 || code.length > 200) {
